@@ -59,7 +59,7 @@ const ComponentName = () => {
       
       <DevelopmentNotice>
         <h2>Under Development</h2>
-        <p>This component is currently under development.</p>
+        <p>This component is currently unm,,m,der development.</p>
       </DevelopmentNotice>
     </ComponentContainer>
   );

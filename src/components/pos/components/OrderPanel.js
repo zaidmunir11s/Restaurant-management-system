@@ -995,7 +995,7 @@ const OrderPanel = ({
             <FaEnvelope /> Email
           </Button>
           <Button
-            className="primary"
+            className="success"
             onClick={handleConfirmModifications}
             disabled={!activeOrder || activeOrder.items.length === 0}
           >

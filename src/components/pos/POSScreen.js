@@ -24,9 +24,9 @@ import TableSwitchModal from './components/TableSwitchModal';
 const POSContainer = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px); /* Adjust for navbar height */
+  height: calc(100vh - 60px);
   overflow: hidden;
-  background-color: ${props => props.theme.colors.background.main};
+  background-color: ${({ theme }) => theme.colors.background.main};
 `;
 
 const POSHeader = styled.div`
@@ -34,8 +34,8 @@ const POSHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background-color: ${props => props.theme.colors.background.paper};
-  box-shadow: ${props => props.theme.shadows.small};
+  background-color: ${({ theme }) => theme.colors.background.paper};
+  box-shadow: ${({ theme }) => theme.shadows.small};
   z-index: 10;
 `;
 
@@ -59,7 +59,7 @@ const HeaderTitle = styled.h1`
   margin: 0;
   
   svg {
-    color: ${props => props.theme.colors.primary};
+    color: ${({ theme }) => theme.colors.primary};
   }
 `;
 
@@ -73,20 +73,20 @@ const IconButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${props => props.theme.colors.text.secondary};
-  transition: all ${props => props.theme.transitions.short};
+  color: ${({ theme }) => theme.colors.text.secondary};
+  transition: all ${({ theme }) => theme.transitions.short};
   position: relative;
   
   &:hover {
-    background-color: ${props => props.theme.colors.background.main}50;
-    color: ${props => props.theme.colors.primary};
+    background-color: ${({ theme }) => theme.colors.background.main}50;
+    color: ${({ theme }) => theme.colors.primary};
   }
   
   .badge {
     position: absolute;
     top: -5px;
     right: -5px;
-    background-color: ${props => props.theme.colors.error};
+    background-color: ${({ theme }) => theme.colors.error};
     color: white;
     font-size: 0.7rem;
     font-weight: bold;
@@ -107,20 +107,20 @@ const POSContent = styled.div`
 
 const TabsContainer = styled.div`
   width: 70px;
-  background-color: ${props => props.theme.colors.background.paper};
+  background-color: ${({ theme }) => theme.colors.background.paper};
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 1rem 0;
-  box-shadow: ${props => props.theme.shadows.small};
+  box-shadow: ${({ theme }) => theme.shadows.small};
 `;
 
 const TabButton = styled.button`
   width: 50px;
   height: 50px;
-  border-radius: ${props => props.theme.borderRadius.medium};
-  background-color: ${props => props.active ? props.theme.colors.primary : 'transparent'};
-  color: ${props => props.active ? 'white' : props.theme.colors.text.secondary};
+  border-radius: ${({ theme }) => theme.borderRadius.medium};
+  background-color: ${({ active, theme }) => active ? theme.colors.primary : 'transparent'};
+  color: ${({ active, theme }) => active ? 'white' : theme.colors.text.secondary};
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -129,10 +129,11 @@ const TabButton = styled.button`
   margin-bottom: 1rem;
   border: none;
   cursor: pointer;
-  transition: all ${props => props.theme.transitions.short};
+  transition: all ${({ theme }) => theme.transitions.short};
   
   &:hover {
-    background-color: ${props => props.active ? props.theme.colors.primary : props.theme.colors.background.main};
+    background-color: ${({ active, theme }) =>
+      active ? theme.colors.primary : theme.colors.background.main};
   }
   
   svg {
@@ -156,20 +157,20 @@ const TableFilterBar = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background-color: ${props => props.theme.colors.background.paper};
-  border-bottom: 1px solid ${props => props.theme.colors.background.main};
+  background-color: ${({ theme }) => theme.colors.background.paper};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.background.main};
 `;
 
 const SearchBox = styled.div`
   position: relative;
   display: flex;
   align-items: center;
-  background-color: ${props => props.theme.colors.background.main};
-  border-radius: ${props => props.theme.borderRadius.small};
+  background-color: ${({ theme }) => theme.colors.background.main};
+  border-radius: ${({ theme }) => theme.borderRadius.small};
   padding: 0 0.75rem;
   
   svg {
-    color: ${props => props.theme.colors.text.secondary};
+    color: ${({ theme }) => theme.colors.text.secondary};
     font-size: 0.9rem;
     margin-right: 0.5rem;
   }
@@ -179,33 +180,31 @@ const SearchBox = styled.div`
     background: transparent;
     padding: 0.5rem;
     width: 180px;
-    color: ${props => props.theme.colors.text.primary};
+    color: ${({ theme }) => theme.colors.text.primary};
     font-size: 0.9rem;
     
-    &:focus {
-      outline: none;
-    }
+    &:focus { outline: none; }
   }
 `;
 
 const POSLeftPanel = styled.div`
   flex: 1;
   overflow-y: auto;
-  display: ${props => props.visible ? 'block' : 'none'};
+  display: ${({ visible }) => visible ? 'block' : 'none'};
   padding: 1rem;
 `;
 
 const POSMenuPanel = styled.div`
   flex: 1;
   overflow-y: auto;
-  display: ${props => props.visible ? 'block' : 'none'};
+  display: ${({ visible }) => visible ? 'block' : 'none'};
   padding: 1rem;
 `;
 
 const POSRightPanel = styled.div`
   width: 380px;
-  background-color: ${props => props.theme.colors.background.paper};
-  border-left: 1px solid ${props => props.theme.colors.background.main};
+  background-color: ${({ theme }) => theme.colors.background.paper};
+  border-left: 1px solid ${({ theme }) => theme.colors.background.main};
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -220,31 +219,28 @@ const CategoryTabs = styled.div`
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   overflow-x: auto;
-  background-color: ${props => props.theme.colors.background.paper};
-  border-bottom: 1px solid ${props => props.theme.colors.background.main};
+  background-color: ${({ theme }) => theme.colors.background.paper};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.background.main};
   
-  &::-webkit-scrollbar {
-    height: 4px;
-  }
-  
+  &::-webkit-scrollbar { height: 4px; }
   &::-webkit-scrollbar-thumb {
-    background-color: ${props => props.theme.colors.primary}50;
+    background-color: ${({ theme }) => theme.colors.primary}50;
     border-radius: 4px;
   }
 `;
 
 const CategoryTab = styled.button`
   padding: 0.5rem 1rem;
-  border-radius: ${props => props.theme.borderRadius.full};
-  background-color: ${props => props.active ? props.theme.colors.primary : props.theme.colors.background.main};
-  color: ${props => props.active ? 'white' : props.theme.colors.text.primary};
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  background-color: ${({ active, theme }) => active ? theme.colors.primary : theme.colors.background.main};
+  color: ${({ active, theme }) => active ? 'white' : theme.colors.text.primary};
   border: none;
   cursor: pointer;
   white-space: nowrap;
-  transition: all ${props => props.theme.transitions.short};
+  transition: all ${({ theme }) => theme.transitions.short};
   
   &:hover {
-    background-color: ${props => props.active ? props.theme.colors.primary : `${props.theme.colors.background.main}80`};
+    background-color: ${({ active, theme }) => active ? theme.colors.primary : `${theme.colors.background.main}80`};
   }
 `;
 
@@ -256,25 +252,25 @@ const MenuItemsGrid = styled.div`
 `;
 
 const MenuItem = styled(motion.div)`
-  background-color: ${props => props.theme.colors.background.paper};
-  border-radius: ${props => props.theme.borderRadius.medium};
-  box-shadow: ${props => props.theme.shadows.small};
+  background-color: ${({ theme }) => theme.colors.background.paper};
+  border-radius: ${({ theme }) => theme.borderRadius.medium};
+  box-shadow: ${({ theme }) => theme.shadows.small};
   overflow: hidden;
   cursor: pointer;
-  transition: all ${props => props.theme.transitions.short};
+  transition: all ${({ theme }) => theme.transitions.short};
   border: 1px solid transparent;
   
   &:hover {
     transform: translateY(-5px);
-    box-shadow: ${props => props.theme.shadows.medium};
-    border-color: ${props => props.theme.colors.primary}30;
+    box-shadow: ${({ theme }) => theme.shadows.medium};
+    border-color: ${({ theme }) => theme.colors.primary}30;
   }
 `;
 
 const MenuItemImage = styled.div`
   height: 100px;
   background-color: #f0f0f0;
-  background-image: url(${props => props.image});
+  background-image: url(${({ image }) => image});
   background-size: cover;
   background-position: center;
 `;
@@ -291,78 +287,66 @@ const MenuItemName = styled.h3`
 
 const MenuItemPrice = styled.div`
   font-weight: 600;
-  color: ${props => props.theme.colors.primary};
+  color: ${({ theme }) => theme.colors.primary};
 `;
+
+const modalVariants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.8 }
+};
 
 // Helper functions for generating demo data
 const generateDemoTables = (branchId) => {
   const tables = [];
-  const numTables = 20; // Fixed number of tables
-  
+  const numTables = 20;
   for (let i = 1; i <= numTables; i++) {
-    // Randomly assign status for demo
-    const status = Math.random() < 0.3 ? 'occupied' : 
-                  (Math.random() < 0.5 ? 'reserved' : 'available');
-    
+    const status = Math.random() < 0.3 ? 'occupied' : (Math.random() < 0.5 ? 'reserved' : 'available');
     tables.push({
-      id: parseInt(`${branchId}${String(i).padStart(3, '0')}`), // Unique ID combining branch and table
+      id: parseInt(`${branchId}${String(i).padStart(3, '0')}`),
       number: i,
-      capacity: Math.floor(Math.random() * 4) + 2, // 2-6 people
-      status: status,
-      section: i <= numTables/2 ? 'Indoor' : 'Outdoor',
-      occupiedSince: status === 'occupied' ? new Date(Date.now() - (Math.random() * 7200000)).toISOString() : null, // Random time in last 2 hours
+      capacity: Math.floor(Math.random() * 4) + 2,
+      status,
+      section: i <= numTables / 2 ? 'Indoor' : 'Outdoor',
+      occupiedSince: status === 'occupied' ? new Date(Date.now() - (Math.random() * 7200000)).toISOString() : null,
       orderId: status === 'occupied' ? parseInt(`${branchId}${String(i).padStart(3, '0')}`) : null
     });
   }
-  
   return tables;
 };
 
-// Generate demo menu items
 const generateDemoMenuItems = (branchId) => {
   const categories = ['Appetizers', 'Main Courses', 'Desserts', 'Beverages', 'Sides'];
   const menuItems = [];
-  
-  // Generate items for each category
   categories.forEach((category, categoryIndex) => {
-    const itemCount = Math.floor(Math.random() * 5) + 3; // 3-7 items per category
-    
+    const itemCount = Math.floor(Math.random() * 5) + 3;
     for (let i = 1; i <= itemCount; i++) {
-      const basePrice = categoryIndex === 3 ? 3 : // Beverages are cheaper
-                       categoryIndex === 2 ? 7 :  // Desserts mid-priced
-                       categoryIndex === 0 ? 8 :  // Appetizers
-                       categoryIndex === 4 ? 5 :  // Sides
-                       15;                        // Main courses are more expensive
-      
+      const basePrice = categoryIndex === 3 ? 3 :
+                        categoryIndex === 2 ? 7 :
+                        categoryIndex === 0 ? 8 :
+                        categoryIndex === 4 ? 5 : 15;
       menuItems.push({
         id: parseInt(`${branchId}${categoryIndex}${i}`),
         name: `${category.slice(0, -1)} ${i}`,
         price: (basePrice + Math.random() * 5).toFixed(2),
         category,
         description: `Delicious ${category.toLowerCase()} option ${i}`,
-        status: Math.random() > 0.1 ? 'active' : 'inactive' // Most items are active
+        status: Math.random() > 0.1 ? 'active' : 'inactive'
       });
     }
   });
-  
   return menuItems;
 };
 
-// Generate demo orders for occupied tables
 const generateDemoOrders = (branchId, occupiedTables, menuItems) => {
   const orders = [];
-  
   occupiedTables.forEach(table => {
     const orderItems = [];
-    const itemCount = Math.floor(Math.random() * 4) + 1; // 1-4 items per order
-    
-    // Add random menu items to the order
+    const itemCount = Math.floor(Math.random() * 4) + 1;
     for (let i = 0; i < itemCount; i++) {
       if (menuItems.length === 0) continue;
-      
       const randomItem = menuItems[Math.floor(Math.random() * menuItems.length)];
-      const quantity = Math.floor(Math.random() * 3) + 1; // 1-3 quantity
-      
+      const quantity = Math.floor(Math.random() * 3) + 1;
       orderItems.push({
         id: Date.now() + i,
         menuItemId: randomItem.id,
@@ -373,7 +357,6 @@ const generateDemoOrders = (branchId, occupiedTables, menuItems) => {
         status: Math.random() > 0.3 ? 'served' : 'preparing'
       });
     }
-    
     orders.push({
       id: table.orderId || Date.now(),
       tableId: table.id,
@@ -384,7 +367,6 @@ const generateDemoOrders = (branchId, occupiedTables, menuItems) => {
       paid: false
     });
   });
-  
   return orders;
 };
 
@@ -395,7 +377,6 @@ const POSScreen = () => {
   const { theme } = useContext(ThemeContext);
   const containerRef = useRef(null);
   
-  // State variables
   const [activeTab, setActiveTab] = useState('tables'); // tables, menu, orders
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [branches, setBranches] = useState([]);
@@ -403,7 +384,7 @@ const POSScreen = () => {
   const [tables, setTables] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
   const [orders, setOrders] = useState([]);
-  const [currentOrders, setCurrentOrders] = useState([]); // Orders for selected table
+  const [currentOrders, setCurrentOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState(['All']);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -418,33 +399,22 @@ const POSScreen = () => {
   const [showTableSwitchModal, setShowTableSwitchModal] = useState(false);
   const [orderToSwitch, setOrderToSwitch] = useState(null);
   
-  // Toggle fullscreen
-  // Toggle fullscreen
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
-      }
+      containerRef.current.requestFullscreen?.();
       setIsFullScreen(true);
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+      document.exitFullscreen?.();
       setIsFullScreen(false);
     }
   };
-  
-  // Load branches and data
+
   useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        
-        // Load branches from localStorage
         const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-        
         if (storedBranches.length === 0) {
-          // Create demo data if no branches exist
           const demoBranches = [
             { id: 1, name: 'Downtown Branch', restaurantId: 1 },
             { id: 2, name: 'Mall Branch', restaurantId: 1 },
@@ -452,48 +422,23 @@ const POSScreen = () => {
           ];
           localStorage.setItem('branches', JSON.stringify(demoBranches));
           setBranches(demoBranches);
-          
-          // Set initial branch
-          if (branchId) {
-            const branch = demoBranches.find(b => b.id === parseInt(branchId));
-            if (branch) {
-              setSelectedBranch(branch);
-              await loadBranchData(branch.id);
-            } else {
-              setSelectedBranch(demoBranches[0]);
-              await loadBranchData(demoBranches[0].id);
-            }
-          } else {
-            setSelectedBranch(demoBranches[0]);
-            await loadBranchData(demoBranches[0].id);
-          }
+          const initBranch = branchId ? demoBranches.find(b => b.id === parseInt(branchId)) || demoBranches[0] : demoBranches[0];
+          setSelectedBranch(initBranch);
+          await loadBranchData(initBranch.id);
         } else {
           setBranches(storedBranches);
-          
-          // Set initial branch
-          if (branchId) {
-            const branch = storedBranches.find(b => b.id === parseInt(branchId));
-            if (branch) {
-              setSelectedBranch(branch);
-              await loadBranchData(parseInt(branchId));
-            } else if (storedBranches.length > 0) {
-              setSelectedBranch(storedBranches[0]);
-              await loadBranchData(storedBranches[0].id);
-            }
-          } else if (storedBranches.length > 0) {
-            setSelectedBranch(storedBranches[0]);
-            await loadBranchData(storedBranches[0].id);
-          }
+          const initBranch = branchId ? storedBranches.find(b => b.id === parseInt(branchId)) || storedBranches[0] : storedBranches[0];
+          setSelectedBranch(initBranch);
+          await loadBranchData(initBranch.id);
         }
         
-        // Generate mock notifications
         const mockNotifications = [
           {
             id: 1,
             type: 'call-waiter',
             title: 'Waiter Requested',
             message: 'Customer at Table #5 has requested assistance',
-            timestamp: new Date(Date.now() - 5 * 60000).toISOString(), // 5 minutes ago
+            timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
             read: false
           },
           {
@@ -501,14 +446,12 @@ const POSScreen = () => {
             type: 'order-ready',
             title: 'Order Ready',
             message: 'Order #1023 for Table #3 is ready for pickup',
-            timestamp: new Date(Date.now() - 12 * 60000).toISOString(), // 12 minutes ago
+            timestamp: new Date(Date.now() - 12 * 60000).toISOString(),
             read: true
           }
         ];
-        
         setNotifications(mockNotifications);
         
-        // Load incoming orders
         const incomingOrders = JSON.parse(localStorage.getItem(`branch_incoming_orders_${branchId || 1}`) || '[]');
         setNewOrders(incomingOrders);
       } catch (error) {
@@ -517,19 +460,16 @@ const POSScreen = () => {
         setIsLoading(false);
       }
     };
-    
     loadData();
     
-    // Set up polling for new orders (simulate customer orders coming in)
     const interval = setInterval(() => {
       const currentIncomingOrders = JSON.parse(localStorage.getItem(`branch_incoming_orders_${branchId || 1}`) || '[]');
       setNewOrders(currentIncomingOrders);
-    }, 10000); // Check every 10 seconds
+    }, 10000);
     
     return () => clearInterval(interval);
   }, [branchId]);
 
-  // Update table orders when selected table changes
   useEffect(() => {
     if (selectedTable) {
       const tableOrders = orders.filter(order => order.tableId === selectedTable.id);
@@ -539,141 +479,83 @@ const POSScreen = () => {
     }
   }, [selectedTable, orders]);
   
-  // Load branch data (tables, menu, orders)
   const loadBranchData = async (branchId) => {
     try {
-      // Load tables
       let storedTables = JSON.parse(localStorage.getItem(`branch_tables_${branchId}`) || '[]');
-      
       if (storedTables.length === 0) {
-        // Generate demo tables if none exist
         storedTables = generateDemoTables(branchId);
         localStorage.setItem(`branch_tables_${branchId}`, JSON.stringify(storedTables));
       }
-      
       setTables(storedTables);
       
-      // Load menu items from branch or restaurant
       let menuItemsData = [];
-      
-      // First try to get branch-specific menu
       const branchMenuItems = JSON.parse(localStorage.getItem(`branch_menu_${branchId}`) || '[]');
-      
       if (branchMenuItems.length > 0) {
         menuItemsData = branchMenuItems;
       } else {
-        // If no branch menu, try to get the restaurant menu
-        const branch = branches.find(b => b.id === branchId);
-        if (branch && branch.restaurantId) {
-          const restaurantMenuItems = JSON.parse(localStorage.getItem(`restaurant_menu_${branch.restaurantId}`) || '[]');
+        const branchData = branches.find(b => b.id === branchId);
+        if (branchData && branchData.restaurantId) {
+          const restaurantMenuItems = JSON.parse(localStorage.getItem(`restaurant_menu_${branchData.restaurantId}`) || '[]');
           if (restaurantMenuItems.length > 0) {
             menuItemsData = restaurantMenuItems;
           }
         }
-        
-        // If still no menu items, create mock data
         if (menuItemsData.length === 0) {
           menuItemsData = generateDemoMenuItems(branchId);
           localStorage.setItem(`branch_menu_${branchId}`, JSON.stringify(menuItemsData));
         }
       }
-      
       setMenuItems(menuItemsData);
       setFilteredMenuItems(menuItemsData);
-      
-      // Extract categories
       const uniqueCategories = ['All', ...new Set(menuItemsData.map(item => item.category))];
       setCategories(uniqueCategories);
       
-      // Load orders
       let storedOrders = JSON.parse(localStorage.getItem(`branch_orders_${branchId}`) || '[]');
-      
       if (storedOrders.length === 0) {
-        // Generate demo orders for occupied tables
         const occupiedTables = storedTables.filter(table => table.status === 'occupied');
         storedOrders = generateDemoOrders(branchId, occupiedTables, menuItemsData);
         localStorage.setItem(`branch_orders_${branchId}`, JSON.stringify(storedOrders));
       }
-      
       setOrders(storedOrders);
-      
-      // Reset selections
       setSelectedTable(null);
       setCurrentOrders([]);
-      
     } catch (error) {
       console.error(`Error loading branch data for ${branchId}:`, error);
     }
   };
+
   const handleSwitchTable = (orderId, newTableId) => {
     if (!selectedTable || !newTableId) return;
-    
-    // Find the order to switch
     const orderToSwitch = orders.find(order => order.id === orderId);
     if (!orderToSwitch) return;
-    
-    // Find the new table
     const newTable = tables.find(table => table.id === newTableId);
     if (!newTable) return;
     
-    // Update order with new table info
-    const updatedOrders = orders.map(order => {
-      if (order.id === orderId) {
-        return {
-          ...order,
-          tableId: newTable.id,
-          tableNumber: newTable.number
-        };
-      }
-      return order;
-    });
+    const updatedOrders = orders.map(order => 
+      order.id === orderId ? { ...order, tableId: newTable.id, tableNumber: newTable.number } : order
+    );
+    setOrders(updatedOrders);
     
-    // Update both tables' status
     const updatedTables = tables.map(table => {
       if (table.id === selectedTable.id) {
-        // Old table becomes available
-        return {
-          ...table,
-          status: 'available',
-          occupiedSince: null,
-          orderId: null
-        };
+        return { ...table, status: 'available', occupiedSince: null, orderId: null };
       }
       if (table.id === newTable.id) {
-        // New table becomes occupied
-        return {
-          ...table,
-          status: 'occupied',
-          occupiedSince: new Date().toISOString(),
-          orderId: orderId
-        };
+        return { ...table, status: 'occupied', occupiedSince: new Date().toISOString(), orderId: orderId };
       }
       return table;
     });
-    
-    // Update state
-    setOrders(updatedOrders);
     setTables(updatedTables);
     setSelectedTable(newTable);
     
-    // Update current orders - keep all orders and just update table references
-    const updatedCurrentOrders = currentOrders.map(order => {
-      if (order.id === orderId) {
-        return {
-          ...order,
-          tableId: newTable.id,
-          tableNumber: newTable.number
-        };
-      }
-      return order;
-    });
+    const updatedCurrentOrders = currentOrders.map((order, index) => 
+      index === activeOrderIndex ? { ...order, tableId: newTable.id, tableNumber: newTable.number } : order
+    );
     setCurrentOrders(updatedCurrentOrders);
     
-    // Reset modal state
     setShowTableSwitchModal(false);
     setOrderToSwitch(null);
     
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
     localStorage.setItem(`branch_tables_${selectedBranch.id}`, JSON.stringify(updatedTables));
   };
@@ -682,71 +564,37 @@ const POSScreen = () => {
     setOrderToSwitch(order);
     setShowTableSwitchModal(true);
   };
-  // Handle deleting an order
+
   const handleDeleteOrder = (orderId) => {
-    try {
-      // Remove the order from the orders array
-      const updatedOrders = orders.filter(order => order.id !== orderId);
-      setOrders(updatedOrders);
-      
-      // If this was the last order for the table, free up the table
-      const tableOrders = updatedOrders.filter(order => 
-        order.tableId === selectedTable.id
-      );
-      
-      if (tableOrders.length === 0) {
-        const updatedTables = tables.map(t => {
-          if (t.id === selectedTable.id) {
-            return { ...t, status: 'available', occupiedSince: null, orderId: null };
-          }
-          return t;
-        });
-        
-        setTables(updatedTables);
-        
-        // Save to localStorage
-        localStorage.setItem(`branch_tables_${selectedBranch.id}`, JSON.stringify(updatedTables));
-      }
-      
-      // Update current orders
-      setCurrentOrders(tableOrders);
-      
-      // If all orders are deleted, clear selected table and return to tables view
-      if (tableOrders.length === 0) {
-        setSelectedTable(null);
-        setActiveTab('tables');
-      }
-      
-      // Save to localStorage
-      localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
-    } catch (error) {
-      console.error('Error deleting order:', error);
+    const updatedOrders = orders.filter(order => order.id !== orderId);
+    setOrders(updatedOrders);
+    const tableOrders = updatedOrders.filter(order => order.tableId === selectedTable.id);
+    if (tableOrders.length === 0) {
+      const updatedTables = tables.map(t => t.id === selectedTable.id ? { ...t, status: 'available', occupiedSince: null, orderId: null } : t);
+      setTables(updatedTables);
+      localStorage.setItem(`branch_tables_${selectedBranch.id}`, JSON.stringify(updatedTables));
     }
+    setCurrentOrders(tableOrders);
+    if (tableOrders.length === 0) {
+      setSelectedTable(null);
+      setActiveTab('tables');
+    }
+    localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
   };
 
-  // Handle table selection
   const handleTableSelect = (table) => {
     setSelectedTable(table);
-    
-    // Find orders for this table
     const tableOrders = orders.filter(order => order.tableId === table.id);
-    
-    // If no orders exist for this table, create a new one
     if (tableOrders.length === 0) {
       const newOrder = createOrderForTable(table);
       setCurrentOrders([newOrder]);
     } else {
       setCurrentOrders(tableOrders);
     }
-    
-    // Reset the active order index
     setActiveOrderIndex(0);
-    
-    // Switch to menu tab
     setActiveTab('menu');
   };
-  
-  // Create a new order for a table
+
   const createOrderForTable = (table) => {
     const newOrder = {
       id: Date.now(),
@@ -758,51 +606,26 @@ const POSScreen = () => {
       paid: false,
       modified: false
     };
-    
-    // Add to orders array
     const updatedOrders = [...orders, newOrder];
     setOrders(updatedOrders);
     
-    // Update table status
-    const updatedTables = tables.map(t => {
-      if (t.id === table.id) {
-        return {
-          ...t,
-          status: 'occupied',
-          occupiedSince: new Date().toISOString(),
-          orderId: newOrder.id
-        };
-      }
-      return t;
-    });
-    
+    const updatedTables = tables.map(t => 
+      t.id === table.id ? { ...t, status: 'occupied', occupiedSince: new Date().toISOString(), orderId: newOrder.id } : t
+    );
     setTables(updatedTables);
     
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
     localStorage.setItem(`branch_tables_${selectedBranch.id}`, JSON.stringify(updatedTables));
     
     return newOrder;
   };
-  
-   
-  // First add this to your state variables in POSScreen.js
-// Add this alongside your other useState declarations:
 
-
-const handleAddMenuItem = (menuItem) => {
+  const handleAddMenuItem = (menuItem) => {
     if (!selectedTable || currentOrders.length === 0) return;
-    
-    // Get the active order based on activeOrderIndex
     const activeOrder = currentOrders[activeOrderIndex];
-    
-    // Check if item already exists in order
     const existingItemIndex = activeOrder.items.findIndex(item => item.menuItemId === menuItem.id);
-    
     let updatedItems;
-    
     if (existingItemIndex >= 0) {
-      // Update existing item quantity
       updatedItems = activeOrder.items.map((item, index) => {
         if (index === existingItemIndex) {
           const newQuantity = item.quantity + 1;
@@ -812,7 +635,6 @@ const handleAddMenuItem = (menuItem) => {
         return item;
       });
     } else {
-      // Add new item
       const newItem = {
         id: Date.now(),
         menuItemId: menuItem.id,
@@ -822,47 +644,26 @@ const handleAddMenuItem = (menuItem) => {
         amount: menuItem.price,
         status: 'ordered'
       };
-      
       updatedItems = [...activeOrder.items, newItem];
     }
-    
-    // Set the modified flag if the order has been confirmed or served
     const orderStatus = activeOrder.status;
     const shouldSetModified = orderStatus === 'confirmed' || orderStatus === 'served';
-    
-    // Update active order
     const updatedOrder = { 
       ...activeOrder, 
       items: updatedItems,
       modified: shouldSetModified ? true : activeOrder.modified
     };
-    
-    // Update in orders array
-    const updatedOrders = orders.map(order => 
-      order.id === activeOrder.id ? updatedOrder : order
-    );
+    const updatedOrders = orders.map(order => order.id === activeOrder.id ? updatedOrder : order);
     setOrders(updatedOrders);
-    
-    // Update current orders - keep all orders and just update the active one
-    const updatedCurrentOrders = currentOrders.map((order, index) => 
+    const updatedCurrentOrders = currentOrders.map((order, index) =>
       index === activeOrderIndex ? updatedOrder : order
     );
     setCurrentOrders(updatedCurrentOrders);
-    
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
   };
 
-// Also need to add UI for order selection to OrderPanel component
-// You'll need to pass activeOrderIndex and setActiveOrderIndex as props to OrderPanel
-// Update the handleUpdateQuantity function:
-const handleUpdateQuantity = (orderId, itemId, change) => {
+  const handleUpdateQuantity = (orderId, itemId, change) => {
     if (!selectedTable) return;
-    
-    // Get the active order
-    const activeOrder = currentOrders[activeOrderIndex];
-    
-    // Update item quantity
     const updatedOrders = orders.map(order => {
       if (order.id === orderId) {
         const updatedItems = order.items.map(item => {
@@ -873,24 +674,14 @@ const handleUpdateQuantity = (orderId, itemId, change) => {
           }
           return item;
         });
-        
-        // Set the modified flag if the order has been confirmed or served
         const orderStatus = order.status;
         const shouldSetModified = orderStatus === 'confirmed' || orderStatus === 'served';
-        
-        return { 
-          ...order, 
-          items: updatedItems,
-          modified: shouldSetModified ? true : order.modified
-        };
+        return { ...order, items: updatedItems, modified: shouldSetModified ? true : order.modified };
       }
       return order;
     });
-    
     setOrders(updatedOrders);
-    
-    // Update current orders
-    const updatedCurrentOrders = currentOrders.map((order, index) => {
+    const updatedCurrentOrders = currentOrders.map(order => {
       if (order.id === orderId) {
         const updatedItems = order.items.map(item => {
           if (item.id === itemId) {
@@ -900,168 +691,81 @@ const handleUpdateQuantity = (orderId, itemId, change) => {
           }
           return item;
         });
-        
-        // Set the modified flag if the order has been confirmed or served
         const orderStatus = order.status;
         const shouldSetModified = orderStatus === 'confirmed' || orderStatus === 'served';
-        
-        return { 
-          ...order, 
-          items: updatedItems,
-          modified: shouldSetModified ? true : order.modified
-        };
+        return { ...order, items: updatedItems, modified: shouldSetModified ? true : order.modified };
       }
       return order;
     });
-    
     setCurrentOrders(updatedCurrentOrders);
-    
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
   };
 
-   // Update the handleRemoveItem function:
-const handleRemoveItem = (orderId, itemId) => {
+  const handleRemoveItem = (orderId, itemId) => {
     if (!selectedTable) return;
-    
-    // Filter out the item
     const updatedOrders = orders.map(order => {
       if (order.id === orderId) {
         const updatedItems = order.items.filter(item => item.id !== itemId);
-        
-        // Set the modified flag if the order has been confirmed or served
         const orderStatus = order.status;
         const shouldSetModified = orderStatus === 'confirmed' || orderStatus === 'served';
-        
-        return { 
-          ...order, 
-          items: updatedItems,
-          modified: shouldSetModified ? true : order.modified
-        };
+        return { ...order, items: updatedItems, modified: shouldSetModified ? true : order.modified };
       }
       return order;
     });
-    
     setOrders(updatedOrders);
-    
-    // Update current orders
     const updatedCurrentOrders = currentOrders.map(order => {
       if (order.id === orderId) {
         const updatedItems = order.items.filter(item => item.id !== itemId);
-        
-        // Set the modified flag if the order has been confirmed or served
         const orderStatus = order.status;
         const shouldSetModified = orderStatus === 'confirmed' || orderStatus === 'served';
-        
-        return { 
-          ...order, 
-          items: updatedItems,
-          modified: shouldSetModified ? true : order.modified
-        };
+        return { ...order, items: updatedItems, modified: shouldSetModified ? true : order.modified };
       }
       return order;
     });
-    
     setCurrentOrders(updatedCurrentOrders);
-    
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
   };
-  // Handle payment completion
+
   const handlePaymentComplete = (orderId) => {
-    // Update order status
-    const updatedOrders = orders.map(order => {
-      if (order.id === orderId) {
-        return { ...order, status: 'completed', paid: true };
-      }
-      return order;
-    });
-    
+    const updatedOrders = orders.map(order => order.id === orderId ? { ...order, status: 'completed', paid: true } : order);
     setOrders(updatedOrders);
-    
-    // Check if there are other active orders for this table
-    const tableActiveOrders = updatedOrders.filter(order => 
-      order.tableId === selectedTable.id && order.status !== 'completed'
-    );
-    
-    // If no active orders remain, free up the table
+    const tableActiveOrders = updatedOrders.filter(order => order.tableId === selectedTable.id && order.status !== 'completed');
     if (tableActiveOrders.length === 0) {
-      const updatedTables = tables.map(table => {
-        if (table.id === selectedTable.id) {
-          return { ...table, status: 'available', occupiedSince: null, orderId: null };
-        }
-        return table;
-      });
-      
+      const updatedTables = tables.map(table => table.id === selectedTable.id ? { ...table, status: 'available', occupiedSince: null, orderId: null } : table);
       setTables(updatedTables);
       localStorage.setItem(`branch_tables_${selectedBranch.id}`, JSON.stringify(updatedTables));
     }
-    
-    // Update current orders - remove paid orders from current view
-    const updatedCurrentOrders = currentOrders.map(order => {
-      if (order.id === orderId) {
-        return { ...order, status: 'completed', paid: true };
-      }
-      return order;
-    }).filter(order => !order.paid);
-    
+    const updatedCurrentOrders = currentOrders.map(order => order.id === orderId ? { ...order, status: 'completed', paid: true } : order)
+                                              .filter(order => !order.paid);
     setCurrentOrders(updatedCurrentOrders);
-    
-    // If all orders are paid, clear selected table and return to tables view
     if (updatedCurrentOrders.length === 0) {
       setSelectedTable(null);
       setActiveTab('tables');
     }
-    
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
   };
-  
-  // Update order status (e.g., mark as served, add discount)
+
   const handleSetOrderStatus = (orderId, statusUpdates) => {
-    // Update order status
-    const updatedOrders = orders.map(order => {
-      if (order.id === orderId) {
-        return { ...order, ...statusUpdates };
-      }
-      return order;
-    });
-    
+    const updatedOrders = orders.map(order => order.id === orderId ? { ...order, ...statusUpdates } : order);
     setOrders(updatedOrders);
-    
-    // Update current orders
-    const updatedCurrentOrders = currentOrders.map(order => {
-      if (order.id === orderId) {
-        return { ...order, ...statusUpdates };
-      }
-      return order;
-    });
-    
+    const updatedCurrentOrders = currentOrders.map(order => order.id === orderId ? { ...order, ...statusUpdates } : order);
     setCurrentOrders(updatedCurrentOrders);
-    
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
   };
-  
-  // Handle branch change
+
   const handleBranchChange = (e) => {
     const newBranchId = parseInt(e.target.value);
     const branch = branches.find(b => b.id === newBranchId);
-    
     if (branch) {
       setSelectedBranch(branch);
       loadBranchData(newBranchId);
       navigate(`/pos/${newBranchId}`);
     }
   };
-  
-  // Handle confirming a new customer order
+
   const handleConfirmNewOrder = (order, tableId) => {
-    // Find the table
     const table = tables.find(t => t.id === parseInt(tableId));
     if (!table) return;
-    
-    // Convert the incoming order to a POS order
     const newOrder = {
       id: order.id,
       tableId: table.id,
@@ -1080,53 +784,27 @@ const handleRemoveItem = (orderId, itemId) => {
       customerName: order.customerName || 'Customer',
       paid: false
     };
-    
-    // Update orders
     const updatedOrders = [...orders, newOrder];
     setOrders(updatedOrders);
-    
-    // Update table status
-    const updatedTables = tables.map(t => {
-      if (t.id === table.id) {
-        return {
-          ...t,
-          status: 'occupied',
-          occupiedSince: new Date().toISOString(),
-          orderId: newOrder.id
-        };
-      }
-      return t;
-    });
-    
+    const updatedTables = tables.map(t => t.id === table.id ? { ...t, status: 'occupied', occupiedSince: new Date().toISOString(), orderId: newOrder.id } : t);
     setTables(updatedTables);
-    
-    // Remove the order from new orders
     const updatedNewOrders = newOrders.filter(o => o.id !== order.id);
     setNewOrders(updatedNewOrders);
-    
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
     localStorage.setItem(`branch_tables_${selectedBranch.id}`, JSON.stringify(updatedTables));
     localStorage.setItem(`branch_incoming_orders_${selectedBranch.id}`, JSON.stringify(updatedNewOrders));
   };
-  
-  // Handle rejecting a new customer order
+
   const handleRejectNewOrder = (orderId) => {
-    // Remove the order from new orders
     const updatedNewOrders = newOrders.filter(o => o.id !== orderId);
     setNewOrders(updatedNewOrders);
-    
-    // Save to localStorage
     localStorage.setItem(`branch_incoming_orders_${selectedBranch.id}`, JSON.stringify(updatedNewOrders));
   };
-  
-  // Add a new order to an existing occupied table
+
   const handleAddOrder = (tableId) => {
     if (!tableId) return;
-    
     const table = tables.find(t => t.id === tableId);
     if (!table) return;
-    
     const newOrder = {
       id: Date.now(),
       tableId: table.id,
@@ -1136,31 +814,19 @@ const handleRemoveItem = (orderId, itemId) => {
       timestamp: new Date().toISOString(),
       paid: false
     };
-    
-    // Add to orders array
     const updatedOrders = [...orders, newOrder];
     setOrders(updatedOrders);
-    
-    // Add to current orders
     const updatedCurrentOrders = [...currentOrders, newOrder];
     setCurrentOrders(updatedCurrentOrders);
-    
-    // Save to localStorage
     localStorage.setItem(`branch_orders_${selectedBranch.id}`, JSON.stringify(updatedOrders));
   };
-  
-  // Filter menu items by category and search
+
   useEffect(() => {
     if (menuItems.length === 0) return;
-    
     let filtered = [...menuItems];
-    
-    // Apply category filter
     if (selectedCategory !== 'All') {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
-    
-    // Apply search filter
     if (searchQuery.trim()) {
       const lowercaseQuery = searchQuery.toLowerCase();
       filtered = filtered.filter(item => 
@@ -1169,15 +835,11 @@ const handleRemoveItem = (orderId, itemId) => {
         item.category.toLowerCase().includes(lowercaseQuery)
       );
     }
-    
     setFilteredMenuItems(filtered);
   }, [selectedCategory, searchQuery, menuItems]);
   
-  // Count unread notifications and new orders
   const unreadCount = notifications.filter(n => !n.read).length;
   const newOrdersCount = newOrders.length;
-  
-  // Get available tables for new orders
   const availableTables = tables.filter(table => table.status === 'available');
   
   return (
@@ -1197,24 +859,20 @@ const handleRemoveItem = (orderId, itemId) => {
             Point of Sale
           </HeaderTitle>
         </HeaderLeft>
-        
         <HeaderRight>
           <BranchSelector 
             branches={branches}
             selectedBranch={selectedBranch}
             onBranchChange={handleBranchChange}
           />
-          
           <IconButton onClick={() => setShowNewOrders(!showNewOrders)}>
             <FaShoppingBasket />
             {newOrdersCount > 0 && <div className="badge">{newOrdersCount}</div>}
           </IconButton>
-          
           <IconButton onClick={() => setShowNotifications(!showNotifications)}>
             <FaBell />
             {unreadCount > 0 && <div className="badge">{unreadCount}</div>}
           </IconButton>
-          
           <IconButton onClick={toggleFullScreen}>
             {isFullScreen ? <FaCompress /> : <FaExpand />}
           </IconButton>
@@ -1230,7 +888,6 @@ const handleRemoveItem = (orderId, itemId) => {
             <FaChair />
             <span>Tables</span>
           </TabButton>
-          
           <TabButton 
             active={activeTab === 'menu'} 
             onClick={() => setActiveTab('menu')}
@@ -1238,7 +895,6 @@ const handleRemoveItem = (orderId, itemId) => {
             <FaUtensils />
             <span>Menu</span>
           </TabButton>
-          
           <TabButton 
             active={activeTab === 'orders'} 
             onClick={() => setActiveTab('orders')}
@@ -1249,7 +905,6 @@ const handleRemoveItem = (orderId, itemId) => {
         </TabsContainer>
         
         <POSMainArea>
-          {/* Tables View */}
           <POSLeftPanel visible={activeTab === 'tables'}>
             <TableGrid 
               tables={tables}
@@ -1259,9 +914,7 @@ const handleRemoveItem = (orderId, itemId) => {
             />
           </POSLeftPanel>
           
-          {/* Menu View */}
           <POSMenuPanel visible={activeTab === 'menu'}>
-            {/* Category filters */}
             <CategoryTabs>
               {categories.map(category => (
                 <CategoryTab 
@@ -1274,12 +927,10 @@ const handleRemoveItem = (orderId, itemId) => {
               ))}
             </CategoryTabs>
             
-            {/* Search bar */}
             <TableFilterBar>
               <div style={{ fontWeight: 500 }}>
                 {filteredMenuItems.length} Items
               </div>
-              
               <SearchBox>
                 <FaSearch />
                 <input 
@@ -1291,7 +942,6 @@ const handleRemoveItem = (orderId, itemId) => {
               </SearchBox>
             </TableFilterBar>
             
-            {/* Menu items grid */}
             <MenuItemsGrid>
               {filteredMenuItems.map(item => (
                 <MenuItem 
@@ -1312,7 +962,6 @@ const handleRemoveItem = (orderId, itemId) => {
             </MenuItemsGrid>
           </POSMenuPanel>
           
-          {/* Orders History View */}
           <POSLeftPanel visible={activeTab === 'orders'}>
             <div style={{ padding: '1rem', textAlign: 'center' }}>
               <h3>Order History</h3>
@@ -1321,41 +970,36 @@ const handleRemoveItem = (orderId, itemId) => {
           </POSLeftPanel>
         </POSMainArea>
         
-        {/* Order Panel (Right Side) */}
         <POSRightPanel>
-        <OrderPanel 
-          orders={currentOrders}
-          table={selectedTable}
-          onPaymentComplete={handlePaymentComplete}
-          branch={selectedBranch}
-          onUpdateQuantity={handleUpdateQuantity}
-          onRemoveItem={handleRemoveItem}
-          onSetOrderStatus={handleSetOrderStatus}
-          onAddOrder={handleAddOrder}
-          onDeleteOrder={handleDeleteOrder}
-          activeOrderIndex={activeOrderIndex}
-          setActiveOrderIndex={setActiveOrderIndex}
-          onSwitchTable={openTableSwitchModal}
-        />
-      </POSRightPanel>
+          <OrderPanel 
+            orders={currentOrders}
+            table={selectedTable}
+            onPaymentComplete={handlePaymentComplete}
+            branch={selectedBranch}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onSetOrderStatus={handleSetOrderStatus}
+            onAddOrder={handleAddOrder}
+            onDeleteOrder={handleDeleteOrder}
+            activeOrderIndex={activeOrderIndex}
+            setActiveOrderIndex={setActiveOrderIndex}
+            onSwitchTable={openTableSwitchModal}
+          />
+        </POSRightPanel>
       </POSContent>
       
-      {/* Notifications Panel (Slide in from right) */}
       <AnimatePresence>
         {showNotifications && (
           <NotificationsPanel 
             notifications={notifications}
             onClose={() => setShowNotifications(false)}
             onMarkAsRead={(id) => {
-              setNotifications(notifications.map(n => 
-                n.id === id ? { ...n, read: true } : n
-              ));
+              setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
             }}
           />
         )}
       </AnimatePresence>
       
-      {/* New Orders Panel (Slide in from right) */}
       <AnimatePresence>
         {showNewOrders && (
           <NewOrdersPanel 
@@ -1367,6 +1011,7 @@ const handleRemoveItem = (orderId, itemId) => {
           />
         )}
       </AnimatePresence>
+      
       <AnimatePresence>
         {showTableSwitchModal && (
           <TableSwitchModal 
