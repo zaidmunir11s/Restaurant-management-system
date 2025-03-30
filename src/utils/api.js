@@ -1,9 +1,12 @@
 // src/utils/api.js
 import axios from 'axios';
 
+// Base API URL - replace with your actual API URL or use environment variables
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -14,9 +17,11 @@ const api = axios.create({
 // Request interceptor - add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
+      // For backward compatibility with some APIs that use x-auth-token
+      config.headers['x-auth-token'] = token;
     }
     return config;
   },
@@ -44,7 +49,7 @@ api.interceptors.response.use(
         if (refreshToken) {
           // Call refresh token endpoint
           const response = await axios.post(
-            `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/refresh-token`,
+            `${API_URL}/auth/refresh-token`,
             { refreshToken },
             { 
               headers: { 'Content-Type': 'application/json' }
@@ -54,7 +59,7 @@ api.interceptors.response.use(
           const { token } = response.data;
           
           // Update stored token
-          localStorage.setItem('auth_token', token);
+          localStorage.setItem('token', token);
           
           // Update authorization header
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -64,15 +69,15 @@ api.interceptors.response.use(
           return api(originalRequest);
         } else {
           // No refresh token, clear auth and redirect to login
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/signin';
         }
       } catch (refreshError) {
         // Refresh token failed, clear auth and redirect to login
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/signin';
         return Promise.reject(refreshError);
       }
     }

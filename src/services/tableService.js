@@ -12,7 +12,12 @@ const tableService = {
    */
   getTables: async (params = {}) => {
     try {
-      // For demo: Get from localStorage with fallback to API
+      const response = await api.get('/tables', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching tables:', error);
+      
+      // Fallback to localStorage if API fails
       const storedTables = JSON.parse(localStorage.getItem('tables') || '[]');
       
       // Filter tables based on params
@@ -36,19 +41,7 @@ const tableService = {
         );
       }
       
-      // If we have tables in localStorage, return them
-      if (filteredTables.length > 0 || storedTables.length > 0) {
-        return filteredTables;
-      }
-      
-      // Fallback to API if no data in localStorage
-      const response = await api.get('/tables', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching tables:', error);
-      
-      // Return empty array as fallback
-      return [];
+      return filteredTables;
     }
   },
 
@@ -59,20 +52,20 @@ const tableService = {
    */
   getTableById: async (id) => {
     try {
-      // For demo: Get from localStorage with fallback to API
-      const storedTables = JSON.parse(localStorage.getItem('tables') || '[]');
-      const foundTable = storedTables.find(table => table.id === parseInt(id));
-      
-      if (foundTable) {
-        return foundTable;
-      }
-      
-      // Fallback to API if not found in localStorage
       const response = await api.get(`/tables/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching table with ID ${id}:`, error);
-      throw error;
+      
+      // Fallback to localStorage if API fails
+      const storedTables = JSON.parse(localStorage.getItem('tables') || '[]');
+      const table = storedTables.find(table => table.id === parseInt(id));
+      
+      if (!table) {
+        throw new Error('Table not found');
+      }
+      
+      return table;
     }
   },
 
@@ -83,28 +76,45 @@ const tableService = {
    */
   createTable: async (tableData) => {
     try {
-      // Try to use the API first
+      const response = await api.post('/tables', tableData);
+      
+      // If we have localStorage data, update it for consistency
       try {
-        const response = await api.post('/tables', tableData);
-        return response.data;
-      } catch (apiError) {
-        console.warn('API call failed, using localStorage instead:', apiError);
-        
-        // Fallback to localStorage for demo
-        const tables = JSON.parse(localStorage.getItem('tables') || '[]');
-        const newTable = {
-          ...tableData,
-          id: Date.now(),
-          branchId: parseInt(tableData.branchId)
-        };
-        
-        const updatedTables = [...tables, newTable];
-        localStorage.setItem('tables', JSON.stringify(updatedTables));
-        
-        return newTable;
+        const storedTables = JSON.parse(localStorage.getItem('tables') || '[]');
+        storedTables.push(response.data);
+        localStorage.setItem('tables', JSON.stringify(storedTables));
+      } catch (storageError) {
+        console.warn('Could not update localStorage:', storageError);
       }
+      
+      return response.data;
     } catch (error) {
       console.error('Error creating table:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Create multiple tables at once
+   * @param {Array} tablesData Array of table data objects
+   * @returns {Promise} Promise with created tables data
+   */
+  createBulkTables: async (tablesData) => {
+    try {
+      const response = await api.post('/tables/bulk', { tables: tablesData });
+      
+      // If we have localStorage data, update it for consistency
+      try {
+        const storedTables = JSON.parse(localStorage.getItem('tables') || '[]');
+        const updatedTables = [...storedTables, ...response.data];
+        localStorage.setItem('tables', JSON.stringify(updatedTables));
+      } catch (storageError) {
+        console.warn('Could not update localStorage:', storageError);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error creating bulk tables:', error);
       throw error;
     }
   },
@@ -117,29 +127,20 @@ const tableService = {
    */
   updateTable: async (id, tableData) => {
     try {
-      // Try to use the API first
+      const response = await api.put(`/tables/${id}`, tableData);
+      
+      // If we have localStorage data, update it for consistency
       try {
-        const response = await api.put(`/tables/${id}`, tableData);
-        return response.data;
-      } catch (apiError) {
-        console.warn('API call failed, using localStorage instead:', apiError);
-        
-        // Fallback to localStorage for demo
-        const tables = JSON.parse(localStorage.getItem('tables') || '[]');
-        const updatedTables = tables.map(table => {
-          if (table.id === parseInt(id)) {
-            return {
-              ...table,
-              ...tableData
-            };
-          }
-          return table;
-        });
-        
+        const storedTables = JSON.parse(localStorage.getItem('tables') || '[]');
+        const updatedTables = storedTables.map(table => 
+          table.id === parseInt(id) ? { ...response.data, id: parseInt(id) } : table
+        );
         localStorage.setItem('tables', JSON.stringify(updatedTables));
-        
-        return updatedTables.find(table => table.id === parseInt(id));
+      } catch (storageError) {
+        console.warn('Could not update localStorage:', storageError);
       }
+      
+      return response.data;
     } catch (error) {
       console.error(`Error updating table with ID ${id}:`, error);
       throw error;
@@ -153,26 +154,18 @@ const tableService = {
    */
   deleteTable: async (id) => {
     try {
-      // Try to use the API first
+      const response = await api.delete(`/tables/${id}`);
+      
+      // If we have localStorage data, update it for consistency
       try {
-        const response = await api.delete(`/tables/${id}`);
-        
-        // Even if API succeeds, update localStorage for demo consistency
-        const tables = JSON.parse(localStorage.getItem('tables') || '[]');
-        const updatedTables = tables.filter(table => table.id !== parseInt(id));
+        const storedTables = JSON.parse(localStorage.getItem('tables') || '[]');
+        const updatedTables = storedTables.filter(table => table.id !== parseInt(id));
         localStorage.setItem('tables', JSON.stringify(updatedTables));
-        
-        return response.data;
-      } catch (apiError) {
-        console.warn('API call failed, using localStorage instead:', apiError);
-        
-        // Fallback to localStorage for demo
-        const tables = JSON.parse(localStorage.getItem('tables') || '[]');
-        const updatedTables = tables.filter(table => table.id !== parseInt(id));
-        localStorage.setItem('tables', JSON.stringify(updatedTables));
-        
-        return { success: true, message: "Table deleted successfully" };
+      } catch (storageError) {
+        console.warn('Could not update localStorage:', storageError);
       }
+      
+      return response.data;
     } catch (error) {
       console.error(`Error deleting table with ID ${id}:`, error);
       throw error;
@@ -186,38 +179,64 @@ const tableService = {
    */
   getTableCounts: async (branchId) => {
     try {
-      // Try to use the API first
+      const response = await api.get(`/tables/counts/${branchId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error getting table counts for branch ${branchId}:`, error);
+      
+      // Calculate from localStorage if API fails
       try {
-        const response = await api.get(`/tables/counts/${branchId}`);
-        return response.data;
-      } catch (apiError) {
-        console.warn('API call failed, calculating from localStorage:', apiError);
-        
-        // Calculate from localStorage
         const tables = JSON.parse(localStorage.getItem('tables') || '[]');
         const branchTables = tables.filter(table => table.branchId === parseInt(branchId));
         
-        const counts = {
+        return {
           total: branchTables.length,
           available: branchTables.filter(t => t.status === 'available').length,
           occupied: branchTables.filter(t => t.status === 'occupied').length,
           reserved: branchTables.filter(t => t.status === 'reserved').length,
           maintenance: branchTables.filter(t => t.status === 'maintenance').length
         };
-        
-        return counts;
+      } catch (countError) {
+        console.error('Error calculating table counts from localStorage:', countError);
+        return {
+          total: 0,
+          available: 0,
+          occupied: 0,
+          reserved: 0,
+          maintenance: 0
+        };
       }
-    } catch (error) {
-      console.error(`Error getting table counts for branch ${branchId}:`, error);
+    }
+  },
+  
+  /**
+   * Update table status
+   * @param {string} id Table ID
+   * @param {string} status New status
+   * @returns {Promise} Promise with updated table data
+   */
+  updateTableStatus: async (id, status) => {
+    try {
+      const response = await api.patch(`/tables/${id}/status`, { status });
       
-      // Return zeros as fallback
-      return {
-        total: 0,
-        available: 0,
-        occupied: 0,
-        reserved: 0,
-        maintenance: 0
-      };
+      // If we have localStorage data, update it for consistency
+      try {
+        const storedTables = JSON.parse(localStorage.getItem('tables') || '[]');
+        const updatedTables = storedTables.map(table => {
+          if (table.id === parseInt(id)) {
+            return { ...table, status };
+          }
+          return table;
+        });
+        localStorage.setItem('tables', JSON.stringify(updatedTables));
+      } catch (storageError) {
+        console.warn('Could not update localStorage:', storageError);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating table status for ID ${id}:`, error);
+      throw error;
     }
   }
 };

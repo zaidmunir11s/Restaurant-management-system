@@ -1,10 +1,11 @@
 // src/components/restaurants/RestaurantForm.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FaUtensils, FaMapMarkerAlt, FaPhone, FaGlobe, FaImage } from 'react-icons/fa';
-import api from '../../utils/api';
+import restaurantService from '../../services/restaurantService';
+import { AuthContext } from '../../context/AuthContext';
 
 const FormContainer = styled(motion.div)`
   max-width: 800px;
@@ -261,17 +262,25 @@ const itemVariants = {
 const RestaurantForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useContext(AuthContext);
   const isEditing = Boolean(id);
   
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     email: '',
+    website: '',
     cuisine: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    description: '',
     status: 'active'
   });
   
   const [errors, setErrors] = useState({});
+  const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
@@ -280,26 +289,26 @@ const RestaurantForm = () => {
     if (isEditing) {
       setIsFetching(true);
       
-      // For demo purposes - simulate API fetch
-      setTimeout(() => {
-        const mockRestaurantData = {
-          id: parseInt(id),
-          name: 'Coastal Delights',
-          address: '123 Ocean Drive',
-          city: 'Miami',
-          state: 'FL',
-          zipCode: '33139',
-          phone: '(305) 555-1234',
-          email: 'info@coastaldelights.com',
-          website: 'www.coastaldelights.com',
-          description: 'Seafood restaurant with ocean view and fresh daily catch.',
-          cuisine: 'Seafood',
-          status: 'active'
-        };
-        
-        setFormData(mockRestaurantData);
-        setIsFetching(false);
-      }, 1000);
+      const fetchRestaurant = async () => {
+        try {
+          const restaurantData = await restaurantService.getRestaurantById(id);
+          setFormData(restaurantData);
+          
+          if (restaurantData.imageUrl) {
+            setImagePreview(restaurantData.imageUrl);
+          }
+          
+        } catch (error) {
+          setErrors({
+            general: 'Failed to load restaurant data. Please try again.'
+          });
+          console.error('Error fetching restaurant:', error);
+        } finally {
+          setIsFetching(false);
+        }
+      };
+      
+      fetchRestaurant();
     }
   }, [isEditing, id]);
   
@@ -342,10 +351,7 @@ const RestaurantForm = () => {
       return;
     }
     
-    setFormData({
-      ...formData,
-      image: file
-    });
+    setImageFile(file);
     
     // Create a preview URL
     const reader = new FileReader();
@@ -364,10 +370,7 @@ const RestaurantForm = () => {
   };
   
   const removeImage = () => {
-    setFormData({
-      ...formData,
-      image: null
-    });
+    setImageFile(null);
     setImagePreview(null);
   };
   
@@ -378,6 +381,9 @@ const RestaurantForm = () => {
     const validationErrors = {};
     if (!formData.name) validationErrors.name = 'Restaurant name is required';
     if (!formData.phone) validationErrors.phone = 'Phone number is required';
+    if (!formData.address) validationErrors.address = 'Address is required';
+    if (!formData.city) validationErrors.city = 'City is required';
+    if (!formData.state) validationErrors.state = 'State is required';
     
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -387,27 +393,24 @@ const RestaurantForm = () => {
     setIsLoading(true);
     
     try {
-      // Demo mode - simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let restaurantData = { ...formData };
       
-      // Store in localStorage for demo purposes
-      const existingRestaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
+      // Add owner field if creating new restaurant
+      if (!isEditing && currentUser) {
+        restaurantData.owner = currentUser.id;
+      }
+      
+      // Add image if available
+      if (imageFile) {
+        restaurantData.image = imageFile;
+      }
       
       if (isEditing) {
         // Update existing restaurant
-        const updatedRestaurants = existingRestaurants.map(restaurant => 
-          restaurant.id === parseInt(id) ? { ...formData, id: parseInt(id) } : restaurant
-        );
-        localStorage.setItem('restaurants', JSON.stringify(updatedRestaurants));
+        await restaurantService.updateRestaurant(id, restaurantData);
       } else {
         // Create new restaurant
-        const newRestaurant = {
-          ...formData,
-          id: Date.now(), // Use timestamp as ID
-          createdAt: new Date().toISOString()
-        };
-        
-        localStorage.setItem('restaurants', JSON.stringify([...existingRestaurants, newRestaurant]));
+        await restaurantService.createRestaurant(restaurantData);
       }
       
       // Navigate back to restaurants list
@@ -545,7 +548,23 @@ const RestaurantForm = () => {
           />
           {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
         </FormGroup>
-      
+        
+        <FormGroup variants={itemVariants}>
+          <Label htmlFor="website">
+            <FaGlobe />
+            Website
+          </Label>
+          <Input
+            type="text"
+            id="website"
+            name="website"
+            value={formData.website}
+            onChange={handleChange}
+            error={errors.website}
+            whileFocus={{ scale: 1.01 }}
+          />
+          {errors.website && <ErrorMessage>{errors.website}</ErrorMessage>}
+        </FormGroup>
         
         <FormGroup variants={itemVariants}>
           <Label htmlFor="status">Status</Label>
@@ -563,6 +582,77 @@ const RestaurantForm = () => {
           {errors.status && <ErrorMessage>{errors.status}</ErrorMessage>}
         </FormGroup>
         
+        <FormGroup variants={itemVariants}>
+          <Label htmlFor="address">
+            <FaMapMarkerAlt />
+            Address
+          </Label>
+          <Input
+            type="text"
+            id="address"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            error={errors.address}
+            whileFocus={{ scale: 1.01 }}
+          />
+          {errors.address && <ErrorMessage>{errors.address}</ErrorMessage>}
+        </FormGroup>
+        
+        <FormGroup variants={itemVariants}>
+          <Label htmlFor="city">City</Label>
+          <Input
+            type="text"
+            id="city"
+            name="city"
+            value={formData.city}
+            onChange={handleChange}
+            error={errors.city}
+            whileFocus={{ scale: 1.01 }}
+          />
+          {errors.city && <ErrorMessage>{errors.city}</ErrorMessage>}
+        </FormGroup>
+        
+        <FormGroup variants={itemVariants}>
+          <Label htmlFor="state">State</Label>
+          <Input
+            type="text"
+            id="state"
+            name="state"
+            value={formData.state}
+            onChange={handleChange}
+            error={errors.state}
+            whileFocus={{ scale: 1.01 }}
+          />
+          {errors.state && <ErrorMessage>{errors.state}</ErrorMessage>}
+        </FormGroup>
+        
+        <FormGroup variants={itemVariants}>
+          <Label htmlFor="zipCode">Zip Code</Label>
+          <Input
+            type="text"
+            id="zipCode"
+            name="zipCode"
+            value={formData.zipCode || ''}
+            onChange={handleChange}
+            error={errors.zipCode}
+            whileFocus={{ scale: 1.01 }}
+          />
+          {errors.zipCode && <ErrorMessage>{errors.zipCode}</ErrorMessage>}
+        </FormGroup>
+        
+        <FormGroup className="full-width" variants={itemVariants}>
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            name="description"
+            value={formData.description || ''}
+            onChange={handleChange}
+            error={errors.description}
+            whileFocus={{ scale: 1.01 }}
+          />
+          {errors.description && <ErrorMessage>{errors.description}</ErrorMessage>}
+        </FormGroup>
         
         <FormGroup className="full-width" variants={itemVariants}>
           <Label htmlFor="image">
