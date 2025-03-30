@@ -133,16 +133,25 @@ const itemVariants = {
 const SignIn = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
-  const { login, isLoading } = useContext(AuthContext);
+  const { login, isLoading, error } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
+
+  // Update errors when there's an authentication error
+  useEffect(() => {
+    if (error) {
+      setErrors({ general: error });
+    }
+  }, [error]);
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
+    
     // Clear error when user types
     if (errors[e.target.name]) {
       setErrors({
         ...errors,
-        [e.target.name]: null
+        [e.target.name]: null,
+        general: null // Also clear general errors
       });
     }
   };
@@ -162,11 +171,9 @@ const SignIn = () => {
     
     try {
       await login(credentials);
-      // Redirect will be handled by the AuthContext
-    } catch (error) {
-      setErrors({
-        general: error.message || 'Failed to sign in. Please try again.'
-      });
+      // Redirect is handled in the AuthContext
+    } catch (err) {
+      // Error handling is done in AuthContext via useEffect above
     }
   };
 

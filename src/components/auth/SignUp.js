@@ -1,5 +1,5 @@
 // src/components/auth/SignUp.js
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -150,8 +150,15 @@ const SignUp = () => {
   });
   
   const [errors, setErrors] = useState({});
-  const { register, isLoading } = useContext(AuthContext);
+  const { register, isLoading, error } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
+
+  // Update errors when there's an authentication error
+  useEffect(() => {
+    if (error) {
+      setErrors({ general: error });
+    }
+  }, [error]);
 
   const handleChange = (e) => {
     setUserData({ ...userData, [e.target.name]: e.target.value });
@@ -160,7 +167,8 @@ const SignUp = () => {
     if (errors[e.target.name]) {
       setErrors({
         ...errors,
-        [e.target.name]: null
+        [e.target.name]: null,
+        general: null // Also clear general errors
       });
     }
   };
@@ -187,12 +195,12 @@ const SignUp = () => {
     }
     
     try {
-      await register(userData);
-      // Redirect will be handled by AuthContext
-    } catch (error) {
-      setErrors({
-        general: error.message || 'Registration failed. Please try again.'
-      });
+      // Create a new object without confirmPassword which the API doesn't need
+      const { confirmPassword, ...registerData } = userData;
+      await register(registerData);
+      // Redirect is handled in the AuthContext
+    } catch (err) {
+      // Error handling is done in AuthContext via useEffect above
     }
   };
 
