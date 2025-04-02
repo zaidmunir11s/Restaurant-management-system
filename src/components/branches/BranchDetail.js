@@ -822,6 +822,7 @@ const BranchDetail = () => {
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   
 // In BranchDetail.js
+// In BranchDetail.js
 useEffect(() => {
   const fetchData = async () => {
     setIsLoading(true);
@@ -833,12 +834,24 @@ useEffect(() => {
       console.log("Fetched branch data:", fetchedBranch);
       
       if (fetchedBranch) {
+        // Ensure we set both id and _id properties
+        if (fetchedBranch._id && !fetchedBranch.id) {
+          fetchedBranch.id = fetchedBranch._id;
+        }
         setBranch(fetchedBranch);
         
         // Get restaurant data
         if (fetchedBranch.restaurantId) {
-          const fetchedRestaurant = await branchService.getRestaurantById(fetchedBranch.restaurantId);
+          const restaurantId = fetchedBranch.restaurantId._id || fetchedBranch.restaurantId;
+          const fetchedRestaurant = await branchService.getRestaurantById(restaurantId);
           setRestaurant(fetchedRestaurant);
+        
+          
+          // Ensure consistent id property
+          if (fetchedRestaurant._id && !fetchedRestaurant.id) {
+            fetchedRestaurant.id = fetchedRestaurant._id;
+          }
+          
         }
         
         // Get tables for this branch

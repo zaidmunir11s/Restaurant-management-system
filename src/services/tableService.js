@@ -33,14 +33,28 @@ const tableService = {
   },
   
   // Get tables for a specific branch
-  getTablesByBranch: async (branchId) => {
+ // In tableService.js
+// Get tables for a specific branch
+getTablesByBranch: async (branchId) => {
     try {
       if (!branchId) {
         throw new Error('Branch ID is required');
       }
       
-      console.log(`Fetching tables for branch ID: ${branchId}`);
-      const response = await api.get(`/tables?branchId=${branchId}`);
+      const formattedBranchId = String(branchId).trim();
+      console.log(`Fetching tables for branch ID: ${formattedBranchId}`);
+      
+      const response = await api.get(`/tables?branchId=${formattedBranchId}`);
+      
+      // Ensure consistent id properties
+      if (Array.isArray(response.data)) {
+        response.data.forEach(table => {
+          if (table._id && !table.id) {
+            table.id = table._id;
+          }
+        });
+      }
+      
       return response.data;
     } catch (error) {
       console.error(`Error fetching tables for branch ${branchId}:`, error);

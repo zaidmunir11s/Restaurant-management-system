@@ -3,9 +3,21 @@ import api from '../utils/api';
 
 const restaurantService = {
   // Get all restaurants
-  getAllRestaurants: async () => {
+ // In restaurantService.js
+// Get all restaurants
+getAllRestaurants: async () => {
     try {
       const response = await api.get('/restaurants');
+      
+      // Ensure consistent id properties
+      if (Array.isArray(response.data)) {
+        response.data.forEach(restaurant => {
+          if (restaurant._id && !restaurant.id) {
+            restaurant.id = restaurant._id;
+          }
+        });
+      }
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching restaurants:', error);
@@ -15,11 +27,18 @@ const restaurantService = {
       throw error.response?.data || { message: 'Error fetching restaurants. Please check the console for details.' };
     }
   },
-
+  
   // Get a restaurant by ID
   getRestaurantById: async (id) => {
     try {
-      const response = await api.get(`/restaurants/${id}`);
+      const restaurantId = String(id).trim();
+      const response = await api.get(`/restaurants/${restaurantId}`);
+      
+      // Ensure consistent id property
+      if (response.data && response.data._id && !response.data.id) {
+        response.data.id = response.data._id;
+      }
+      
       return response.data;
     } catch (error) {
       console.error(`Error fetching restaurant with ID ${id}:`, error);
@@ -28,6 +47,7 @@ const restaurantService = {
       throw error.response?.data || { message: 'Error fetching restaurant. Please check the console for details.' };
     }
   },
+
 
   // Create a new restaurant
   createRestaurant: async (restaurantData) => {

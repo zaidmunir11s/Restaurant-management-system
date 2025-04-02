@@ -84,12 +84,18 @@ const authService = {
    * @returns {Promise} Promise with the login response
    */
  // src/services/authService.js - Enhanced login method
+// In authService.js
 login: async (credentials) => {
     try {
       console.log('Attempting login with:', credentials.email);
       const response = await api.post('/auth/login', credentials);
       
       if (response.data.token) {
+        // Ensure user data has consistent id property
+        if (response.data.user && response.data.user._id && !response.data.user.id) {
+          response.data.user.id = response.data.user._id;
+        }
+        
         // Store token and user data in localStorage
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -97,6 +103,7 @@ login: async (credentials) => {
         // Log user info
         console.log('Login successful. User role:', response.data.user.role);
         console.log('User permissions:', response.data.user.permissions);
+        
         if (response.data.user.restaurantId) {
           console.log('User is linked to restaurant ID:', response.data.user.restaurantId);
         }

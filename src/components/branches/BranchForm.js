@@ -843,6 +843,7 @@ if (restaurantId) {
 // Add this import
 
 // In your BranchForm component, update the handleSubmit function:
+// In BranchForm.js
 const handleSubmit = async (e) => {
   e.preventDefault();
   
@@ -906,9 +907,15 @@ const handleSubmit = async (e) => {
     
     // Navigate back after a delay
     setTimeout(() => {
-      // Make sure to use the branch's restaurantId from the response if available
+      // Make sure to use the branch's id and restaurantId from the response
+      const branchId = branch?._id || branch?.id;
       const targetRestaurantId = branch?.restaurantId || branchData.restaurantId;
-      navigate(`/restaurants/${targetRestaurantId}/branches`);
+      
+      if (isEditing) {
+        navigate(`/branches/${branchId}`);
+      } else {
+        navigate(`/restaurants/${targetRestaurantId}/branches`);
+      }
     }, 1500);
   } catch (error) {
     console.error('Error saving branch:', error);

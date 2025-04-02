@@ -3,10 +3,22 @@ import api from '../utils/api';
 
 const branchService = {
   // Get all branches
-  getAllBranches: async (restaurantId = null) => {
+// In branchService.js
+// Get all branches
+getAllBranches: async (restaurantId = null) => {
     try {
       const url = restaurantId ? `/branches?restaurantId=${restaurantId}` : '/branches';
       const response = await api.get(url);
+      
+      // Ensure consistent id properties
+      if (Array.isArray(response.data)) {
+        response.data.forEach(branch => {
+          if (branch._id && !branch.id) {
+            branch.id = branch._id;
+          }
+        });
+      }
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -15,10 +27,23 @@ const branchService = {
   },
 
   // Get a branch by ID
-  getBranchById: async (id) => {
+ // src/services/branchService.js
+// Get a branch by ID
+getBranchById: async (id) => {
     try {
       console.log(`Fetching branch with ID: ${id}`);
-      const response = await api.get(`/branches/${id}`);
+      // Ensure id is properly formatted (MongoDB uses string IDs)
+      const branchId = String(id).trim(); 
+      const response = await api.get(`/branches/${branchId}`);
+      
+      // Log response for debugging
+      console.log(`Branch response data:`, response.data);
+      
+      // Ensure the response includes both MongoDB _id and a regular id property
+      if (response.data && response.data._id) {
+        response.data.id = response.data._id;
+      }
+      
       return response.data;
     } catch (error) {
       console.error(`Error fetching branch with ID ${id}:`, error);
@@ -28,10 +53,13 @@ const branchService = {
 
   // Get a restaurant by ID (added this method)
 // In your branchService.js
+// In branchService.js
 getRestaurantById: async (id) => {
     try {
-      console.log(`Making API call to get restaurant with ID: ${id}`);
-      const response = await api.get(`/restaurants/${id}`);
+      // Make sure id is a string, not an object
+      const restaurantId = typeof id === 'object' ? id.toString() : id;
+      console.log(`Making API call to get restaurant with ID: ${restaurantId}`);
+      const response = await api.get(`/restaurants/${restaurantId}`);
       console.log("Restaurant API response:", response.data);
       return response.data;
     } catch (error) {
@@ -54,7 +82,8 @@ getRestaurantById: async (id) => {
   },
 
   // Create a new branch
-  createBranch: async (branchData) => {
+ // In branchService.js
+createBranch: async (branchData) => {
     try {
       console.log('Creating branch with data:', branchData);
       
@@ -89,7 +118,8 @@ getRestaurantById: async (id) => {
           if (key === 'image' && processedData[key]) {
             formData.append('image', processedData[key]);
           } else {
-            formData.append(key, processedData[key]);
+            formData.append(key, typeof processedData[key] === 'object' ? 
+              JSON.stringify(processedData[key]) : processedData[key]);
           }
         });
         
@@ -101,6 +131,11 @@ getRestaurantById: async (id) => {
           }
         });
         
+        // Ensure consistent id format
+        if (response.data && response.data._id) {
+          response.data.id = response.data._id;
+        }
+        
         console.log('Branch created successfully:', response.data);
         return response.data;
       } else {
@@ -108,6 +143,12 @@ getRestaurantById: async (id) => {
         console.log('Sending JSON data without image, restaurantId:', processedData.restaurantId);
         
         const response = await api.post('/branches', processedData);
+        
+        // Ensure consistent id format
+        if (response.data && response.data._id) {
+          response.data.id = response.data._id;
+        }
+        
         console.log('Branch created successfully:', response.data);
         return response.data;
       }

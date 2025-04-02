@@ -374,56 +374,60 @@ const RestaurantForm = () => {
     setImagePreview(null);
   };
   
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // In RestaurantForm.js
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Validation
+  const validationErrors = {};
+  if (!formData.name) validationErrors.name = 'Restaurant name is required';
+  if (!formData.phone) validationErrors.phone = 'Phone number is required';
+  if (!formData.address) validationErrors.address = 'Address is required';
+  if (!formData.city) validationErrors.city = 'City is required';
+  if (!formData.state) validationErrors.state = 'State is required';
+  
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
+  
+  setIsLoading(true);
+  
+  try {
+    let restaurantData = { ...formData };
     
-    // Validation
-    const validationErrors = {};
-    if (!formData.name) validationErrors.name = 'Restaurant name is required';
-    if (!formData.phone) validationErrors.phone = 'Phone number is required';
-    if (!formData.address) validationErrors.address = 'Address is required';
-    if (!formData.city) validationErrors.city = 'City is required';
-    if (!formData.state) validationErrors.state = 'State is required';
-    
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
+    // Add owner field if creating new restaurant
+    if (!isEditing && currentUser) {
+      restaurantData.owner = currentUser.id || currentUser._id;
     }
     
-    setIsLoading(true);
-    
-    try {
-      let restaurantData = { ...formData };
-      
-      // Add owner field if creating new restaurant
-      if (!isEditing && currentUser) {
-        restaurantData.owner = currentUser.id;
-      }
-      
-      // Add image if available
-      if (imageFile) {
-        restaurantData.image = imageFile;
-      }
-      
-      if (isEditing) {
-        // Update existing restaurant
-        await restaurantService.updateRestaurant(id, restaurantData);
-      } else {
-        // Create new restaurant
-        await restaurantService.createRestaurant(restaurantData);
-      }
-      
-      // Navigate back to restaurants list
-      navigate('/restaurants');
-    } catch (error) {
-      console.error('Error saving restaurant:', error);
-      setErrors({
-        general: error.message || 'Error saving restaurant. Please try again.'
-      });
-    } finally {
-      setIsLoading(false);
+    // Add image if available
+    if (imageFile) {
+      restaurantData.image = imageFile;
     }
-  };
+    
+    let response;
+    if (isEditing) {
+      // Update existing restaurant
+      response = await restaurantService.updateRestaurant(id, restaurantData);
+    } else {
+      // Create new restaurant
+      response = await restaurantService.createRestaurant(restaurantData);
+    }
+    
+    // Ensure consistent id property
+    const restaurantId = response._id || response.id;
+    
+    // Navigate back to restaurants list
+    navigate(`/restaurants/${restaurantId}`);
+  } catch (error) {
+    console.error('Error saving restaurant:', error);
+    setErrors({
+      general: error.message || 'Error saving restaurant. Please try again.'
+    });
+    setIsLoading(false);
+  }
+};
   
   if (isFetching) {
     return (

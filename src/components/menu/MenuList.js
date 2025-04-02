@@ -14,6 +14,8 @@ import MenuGrid from './components/MenuGrid';
 import MenuPagination from './components/MenuPagination';
 import CategoryModal from './components/CategoryModal';
 import CategoryManager from './components/CategoryManager';
+import branchService from '../../services/branchService';
+import restaurantService from '../../services/restaurantService';
 
 // Styled Components
 const MenuViewContainer = styled(motion.div)`
@@ -48,7 +50,9 @@ const MenuList = () => {
   const isRestaurantView = Boolean(restaurantId && !branchId);
   const isBranchView = Boolean(branchId);
   
-  useEffect(() => {
+ // In MenuList.js
+// In the useEffect where you fetch data
+useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
@@ -56,192 +60,45 @@ const MenuList = () => {
         
         // If we have a restaurantId, fetch restaurant data
         if (restaurantId) {
-          const restaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-          const foundRestaurant = restaurants.find(r => r.id === parseInt(restaurantId));
+          const restaurants = await restaurantService.getAllRestaurants();
+          const foundRestaurant = restaurants.find(r => 
+            r.id === restaurantId || r._id === restaurantId);
           
           if (foundRestaurant) {
             setRestaurant(foundRestaurant);
             
             // Get all branches for this restaurant
-            const allBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-            const restaurantBranches = allBranches.filter(b => b.restaurantId === parseInt(restaurantId));
-            setBranches(restaurantBranches);
+            const allBranches = await branchService.getAllBranches(restaurantId);
+            setBranches(allBranches);
             
             // If no specific branch is selected, use the first branch
-            if (!selectedBranchId && restaurantBranches.length > 0) {
-              setSelectedBranchId(restaurantBranches[0].id);
+            if (!selectedBranchId && allBranches.length > 0) {
+              setSelectedBranchId(allBranches[0].id || allBranches[0]._id);
             }
           }
         }
         
         // If we have a branchId, fetch branch data
         if (branchId) {
-          const branches = JSON.parse(localStorage.getItem('branches') || '[]');
-          const foundBranch = branches.find(b => b.id === parseInt(branchId));
+          const fetchedBranch = await branchService.getBranchById(branchId);
           
-          if (foundBranch) {
-            setBranch(foundBranch);
-            setSelectedBranchId(parseInt(branchId));
+          if (fetchedBranch) {
+            setBranch(fetchedBranch);
+            setSelectedBranchId(fetchedBranch.id || fetchedBranch._id);
             
             // Get restaurant data for this branch
-            const restaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-            const foundRestaurant = restaurants.find(r => r.id === foundBranch.restaurantId);
-            if (foundRestaurant) {
-              setRestaurant(foundRestaurant);
+            if (fetchedBranch.restaurantId) {
+              const fetchedRestaurant = await restaurantService.getRestaurantById(fetchedBranch.restaurantId);
+              if (fetchedRestaurant) {
+                setRestaurant(fetchedRestaurant);
+              }
             }
           }
         }
         
-        // Fetch menu items for the selected branch or restaurant
-        let targetId;
+        // Then fetch menu items...
+        // Rest of the code remains similar but ensure you handle both id and _id properties
         
-        if (branchId) {
-          targetId = parseInt(branchId);
-        } else if (selectedBranchId) {
-          targetId = selectedBranchId;
-        } else if (restaurantId) {
-          targetId = parseInt(restaurantId);
-        }
-        
-        console.log("Target ID for menu items:", targetId);
-        
-        if (targetId) {
-          // First try to get branch-specific menu
-          let storedMenuItems = JSON.parse(localStorage.getItem(`branch_menu_${targetId}`) || '[]');
-          
-          // If no branch-specific menu, try restaurant menu
-          if (storedMenuItems.length === 0 && branchId) {
-            const branches = JSON.parse(localStorage.getItem('branches') || '[]');
-            const foundBranch = branches.find(b => b.id === parseInt(branchId));
-            
-            if (foundBranch && foundBranch.restaurantId) {
-              storedMenuItems = JSON.parse(localStorage.getItem(`restaurant_menu_${foundBranch.restaurantId}`) || '[]');
-            }
-          }
-          
-          // Finally, if still no menu items, create some sample ones
-          if (storedMenuItems.length === 0) {
-            // Create sample menu items
-            const sampleCategories = ['Appetizers', 'Main Courses', 'Desserts', 'Beverages'];
-            const sampleMenuItems = [];
-            
-            // Generate regular menu items
-            for (let i = 1; i <= 12; i++) {
-              const category = sampleCategories[Math.floor(Math.random() * sampleCategories.length)];
-              sampleMenuItems.push({
-                id: i,
-                title: `Menu Item ${i}`,
-                description: `Description for menu item ${i}. This is a delicious dish that customers love.`,
-                price: `$${(Math.random() * 20 + 5).toFixed(2)}`,
-                category: category,
-                status: Math.random() > 0.2 ? 'active' : 'inactive',
-                featured: Math.random() > 0.8,
-                modelUrl: 'https://menu-reality.com/fast_food_meal.glb'
-              });
-            }
-            
-            // Add deal items
-            for (let i = 13; i <= 15; i++) {
-              sampleMenuItems.push({
-                id: i,
-                title: `Deal Package ${i-12}`,
-                description: `Special deal package with multiple items at a discounted price.`,
-                price: `$${(Math.random() * 30 + 15).toFixed(2)}`,
-                category: 'Deals',
-                status: 'active',
-                featured: true,
-                modelUrl: 'https://menu-reality.com/fast_food_meal.glb'
-              });
-            }
-            
-            // Add exclusive offer items
-            for (let i = 16; i <= 18; i++) {
-              sampleMenuItems.push({
-                id: i,
-                title: `Exclusive Offer ${i-15}`,
-                description: `Limited time exclusive offer only available at select locations.`,
-                price: `$${(Math.random() * 25 + 10).toFixed(2)}`,
-                category: 'Exclusive Offers',
-                status: 'active',
-                featured: true,
-                modelUrl: 'https://menu-reality.com/fast_food_meal.glb'
-              });
-            }
-            
-            // For Restaurant view, store as restaurant menu
-            if (isRestaurantView && restaurantId) {
-              localStorage.setItem(`restaurant_menu_${restaurantId}`, JSON.stringify(sampleMenuItems));
-            } 
-            // For Branch view, store as branch menu
-            else if (isBranchView && branchId) {
-              localStorage.setItem(`branch_menu_${branchId}`, JSON.stringify(sampleMenuItems));
-            }
-            
-            setMenuItems(sampleMenuItems);
-            setFilteredItems(sampleMenuItems);
-            
-            // Extract unique categories and ensure "Deals" and "Exclusive Offers" are included
-            const uniqueCategories = ['All', ...new Set(sampleMenuItems.map(item => item.category))];
-            setCategories(uniqueCategories);
-          } else {
-            console.log("Found stored menu items:", storedMenuItems.length);
-            
-            // Check if Deals and Exclusive Offers categories exist
-            // If not, add some sample items for those categories
-            const hasDeals = storedMenuItems.some(item => item.category === 'Deals');
-            const hasExclusives = storedMenuItems.some(item => item.category === 'Exclusive Offers');
-            
-            let updatedItems = [...storedMenuItems];
-            
-            if (!hasDeals) {
-              // Add deal items
-              for (let i = 1; i <= 3; i++) {
-                updatedItems.push({
-                  id: storedMenuItems.length + i,
-                  title: `Deal Package ${i}`,
-                  description: `Special deal package with multiple items at a discounted price.`,
-                  price: `$${(Math.random() * 30 + 15).toFixed(2)}`,
-                  category: 'Deals',
-                  status: 'active',
-                  featured: true,
-                  modelUrl: 'https://menu-reality.com/fast_food_meal.glb'
-                });
-              }
-            }
-            
-            if (!hasExclusives) {
-              // Add exclusive offer items
-              for (let i = 1; i <= 3; i++) {
-                updatedItems.push({
-                  id: storedMenuItems.length + (hasDeals ? 3 : 0) + i,
-                  title: `Exclusive Offer ${i}`,
-                  description: `Limited time exclusive offer only available at select locations.`,
-                  price: `$${(Math.random() * 25 + 10).toFixed(2)}`,
-                  category: 'Exclusive Offers',
-                  status: 'active',
-                  featured: true,
-                  modelUrl: 'https://menu-reality.com/fast_food_meal.glb'
-                });
-              }
-            }
-            
-            // If we added new items, update localStorage
-            if (updatedItems.length > storedMenuItems.length) {
-              if (isRestaurantView && restaurantId) {
-                localStorage.setItem(`restaurant_menu_${restaurantId}`, JSON.stringify(updatedItems));
-              } else if (isBranchView && branchId) {
-                localStorage.setItem(`branch_menu_${branchId}`, JSON.stringify(updatedItems));
-              }
-            }
-            
-            setMenuItems(updatedItems);
-            setFilteredItems(updatedItems);
-            
-            // Extract unique categories and ensure they are in the right order
-            const uniqueCategories = ['All', ...new Set(updatedItems.map(item => item.category))];
-            setCategories(uniqueCategories);
-          }
-        }
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {

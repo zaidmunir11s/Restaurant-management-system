@@ -1,7 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { 
+  FaPlus, 
+  FaChair, 
+  FaSpinner, 
+  FaExclamationTriangle,
+  FaArrowLeft,
+  FaStore,
+  FaFilter,
+  FaSearch 
+} from 'react-icons/fa';
+
+import tableService from '../../services/tableService';
+import branchService from '../../services/branchService';
 
 const ComponentContainer = styled(motion.div)`
   padding: 2rem;
@@ -43,9 +56,123 @@ const DevelopmentNotice = styled.div`
   box-shadow: ${props => props.theme.shadows.small};
   text-align: center;
 `;
-
+const TableList = () => {
+    const { branchId } = useParams();
+    const navigate = useNavigate();
+    
+    const [tables, setTables] = useState([]);
+    const [branch, setBranch] = useState(null);
+    const [restaurant, setRestaurant] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [filter, setFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    
+    // Load branch, restaurant, and tables
+    useEffect(() => {
+      const fetchData = async () => {
+        setIsLoading(true);
+        try {
+          // Fetch branch data
+          const fetchedBranch = await branchService.getBranchById(branchId);
+          
+          if (fetchedBranch) {
+            // Ensure consistent id format
+            if (fetchedBranch._id && !fetchedBranch.id) {
+              fetchedBranch.id = fetchedBranch._id;
+            }
+            
+            setBranch(fetchedBranch);
+            
+            // Fetch restaurant data
+            if (fetchedBranch.restaurantId) {
+              const fetchedRestaurant = await branchService.getRestaurantById(fetchedBranch.restaurantId);
+              
+              // Ensure consistent id format
+              if (fetchedRestaurant._id && !fetchedRestaurant.id) {
+                fetchedRestaurant.id = fetchedRestaurant._id;
+              }
+              
+              setRestaurant(fetchedRestaurant);
+            }
+            
+            // Fetch tables
+            const fetchedTables = await tableService.getTablesByBranch(branchId);
+            
+            // Ensure consistent id format for each table
+            const processedTables = fetchedTables.map(table => {
+              if (table._id && !table.id) {
+                table.id = table._id;
+              }
+              return table;
+            });
+            
+            setTables(processedTables);
+          } else {
+            setError('Branch not found');
+          }
+        } catch (err) {
+          console.error("Error fetching tables data:", err);
+          setError(err.message || 'Failed to load tables');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchData();
+    }, [branchId]);
+    
+    // Filter tables based on status and search query
+    const filteredTables = tables
+      .filter(table => {
+        if (filter === 'all') return true;
+        return table.status === filter;
+      })
+      .filter(table => {
+        if (!searchQuery) return true;
+        const tableNumber = table.number.toString();
+        return tableNumber.includes(searchQuery);
+      });
+      
+    // Handle table status change
+    const handleStatusChange = async (tableId, newStatus) => {
+      try {
+        await tableService.updateTableStatus(tableId, newStatus);
+        
+        // Update the table in the local state
+        const updatedTables = tables.map(table => {
+          if (table.id === tableId || table._id === tableId) {
+            return { ...table, status: newStatus };
+          }
+          return table;
+        });
+        
+        setTables(updatedTables);
+      } catch (err) {
+        console.error("Error updating table status:", err);
+        // Display error notification
+      }
+    };
+    
+    // Handle table deletion
+    const handleDeleteTable = async (tableId) => {
+      if (window.confirm('Are you sure you want to delete this table?')) {
+        try {
+          await tableService.deleteTable(tableId);
+          
+          // Remove the table from local state
+          const updatedTables = tables.filter(table => 
+            table.id !== tableId && table._id !== tableId);
+          
+          setTables(updatedTables);
+        } catch (err) {
+          console.error("Error deleting table:", err);
+          // Display error notification
+        }
+      }
+    };
 // Replace ComponentName with the actual component name
-const ComponentName = () => {
+
   return (
     <ComponentContainer
       initial={{ opacity: 0 }}
@@ -65,4 +192,4 @@ const ComponentName = () => {
   );
 };
 
-export default ComponentName;
+export default TableList;

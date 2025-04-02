@@ -564,27 +564,41 @@ const RestaurantDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  useEffect(() => {
- 
-// Update fetchData function in useEffect
-const fetchData = async () => {
-  setIsLoading(true);
-  
-  try {
-    // Get restaurant from API
-    const fetchedRestaurant = await restaurantService.getRestaurantById(id);
-    setRestaurant(fetchedRestaurant);
-    
-    // Get branches for this restaurant from API
-    const restaurantBranches = await branchService.getAllBranches(id);
-    setBranches(restaurantBranches);
-  } catch (error) {
-    console.error('Error fetching restaurant details:', error);
-    setError(error.message || 'Error loading restaurant details');
-  } finally {
-    setIsLoading(false);
-  }
-};
+// In RestaurantDetail.js
+useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Get restaurant from API
+        const fetchedRestaurant = await restaurantService.getRestaurantById(id);
+        
+        // Ensure consistent id property
+        if (fetchedRestaurant._id && !fetchedRestaurant.id) {
+          fetchedRestaurant.id = fetchedRestaurant._id;
+        }
+        
+        setRestaurant(fetchedRestaurant);
+        
+        // Get branches for this restaurant from API
+        const restaurantBranches = await branchService.getAllBranches(id);
+        
+        // Ensure consistent id properties for branches
+        const processedBranches = restaurantBranches.map(branch => {
+          if (branch._id && !branch.id) {
+            branch.id = branch._id;
+          }
+          return branch;
+        });
+        
+        setBranches(processedBranches);
+      } catch (error) {
+        console.error('Error fetching restaurant details:', error);
+        setError(error.message || 'Error loading restaurant details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
     fetchData();
   }, [id]);

@@ -33,8 +33,7 @@ const userService = {
 
   // Create a new user
  // Updated createUser function in userService
-// src/services/userService.js - improved createUser method
-// src/services/userService.js
+// In userService.js
 createUser: async (userData) => {
     try {
       console.log('Creating user with data:', userData);
@@ -48,14 +47,14 @@ createUser: async (userData) => {
         role: userData.role
       };
       
-      // Only add restaurant and branch IDs if applicable
+      // Only add restaurant and branch IDs if applicable and ensure they're strings for MongoDB
       if (['manager', 'waiter'].includes(userData.role)) {
         if (userData.restaurantId) {
-          userToCreate.restaurantId = userData.restaurantId;
+          userToCreate.restaurantId = String(userData.restaurantId);
         }
         
         if (userData.branchId) {
-          userToCreate.branchId = userData.branchId;
+          userToCreate.branchId = String(userData.branchId);
         }
       }
       
@@ -75,6 +74,12 @@ createUser: async (userData) => {
       console.log('Sending user data to server:', userToCreate);
       
       const response = await api.post('/users', userToCreate);
+      
+      // Ensure consistent id property
+      if (response.data && response.data._id && !response.data.id) {
+        response.data.id = response.data._id;
+      }
+      
       console.log('User created successfully:', response.data);
       
       return response.data;

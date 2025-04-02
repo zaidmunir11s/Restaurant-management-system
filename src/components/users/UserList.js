@@ -15,10 +15,13 @@ import {
   FaTimes,
   FaUserCog,
   FaUserPlus,
-  FaDesktop
+  FaDesktop,
+  FaChair
 } from 'react-icons/fa';
 import { AuthContext } from '../../context/AuthContext';
 import userService from '../../services/userService';
+import branchService from '../../services/branchService';
+import restaurantService from '../../services/restaurantService';
 
 // Helper to darken the primary color on hover
 const darkenColor = (hex) => {
@@ -360,6 +363,7 @@ const UserList = () => {
   const { currentUser } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
   const [branches, setBranches] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -387,21 +391,29 @@ const UserList = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Load initial data
-  useEffect(() => {
+ // In UserList.js - modify the useEffect function that loads initial data
+
+useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
         // Get users from API
         const fetchedUsers = await userService.getAllUsers();
         setUsers(fetchedUsers);
-
-        // For now, still get restaurants and branches from localStorage
-        // This can be updated later to use API calls
-        const storedRestaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-        const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-        
-        setRestaurants(storedRestaurants);
-        setBranches(storedBranches);
+  
+        // Update this part to fetch restaurants and branches from API
+        // Instead of using localStorage
+        try {
+          // Get restaurants from API
+          const fetchedRestaurants = await restaurantService.getAllRestaurants();
+          setRestaurants(fetchedRestaurants);
+          
+          // Get all branches from API
+          const fetchedBranches = await branchService.getAllBranches();
+          setBranches(fetchedBranches);
+        } catch (restError) {
+          console.error("Error loading restaurants/branches:", restError);
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -409,7 +421,7 @@ const UserList = () => {
       }
     };
     loadData();
-  }, [])
+  }, []);
 
   const filteredUsers = users.filter(user => {
     const searchLower = searchTerm.toLowerCase();
@@ -434,8 +446,9 @@ const UserList = () => {
     setShowAddUserModal(true);
   };
 
-  const handleEditUser = (user) => {
+  const handleEditUser = async (user) => {
     setSelectedUser(user);
+    // Create a copy to avoid modifying the original directly
     setFormData({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -445,7 +458,14 @@ const UserList = () => {
       role: user.role,
       restaurantId: user.restaurantId || '',
       branchId: user.branchId || '',
-      permissions: user.permissions || { manageUsers: false, manageMenu: false, manageTables: false, accessPOS: true }
+      permissions: {
+        manageUsers: false,
+        manageMenu: false,
+        manageTables: false,
+        accessPOS: true,
+        manageRestaurants: false,
+        manageBranches: false
+      }
     });
     setFormErrors({});
     setShowEditUserModal(true);
@@ -480,16 +500,44 @@ const UserList = () => {
     let permissions;
     switch (role) {
       case 'owner':
-        permissions = { manageUsers: true, manageMenu: true, manageTables: true, accessPOS: true };
+        permissions = { 
+          manageUsers: true, 
+          manageMenu: true, 
+          manageTables: true, 
+          accessPOS: true,
+          manageRestaurants: true,
+          manageBranches: true 
+        };
         break;
       case 'manager':
-        permissions = { manageUsers: false, manageMenu: true, manageTables: true, accessPOS: true };
+        permissions = { 
+          manageUsers: false, 
+          manageMenu: true, 
+          manageTables: true, 
+          accessPOS: true,
+          manageRestaurants: false,
+          manageBranches: true 
+        };
         break;
       case 'waiter':
-        permissions = { manageUsers: false, manageMenu: false, manageTables: false, accessPOS: true };
+        permissions = { 
+          manageUsers: false, 
+          manageMenu: false, 
+          manageTables: false, 
+          accessPOS: true,
+          manageRestaurants: false,
+          manageBranches: false 
+        };
         break;
       default:
-        permissions = { manageUsers: false, manageMenu: false, manageTables: false, accessPOS: true };
+        permissions = { 
+          manageUsers: false, 
+          manageMenu: false, 
+          manageTables: false, 
+          accessPOS: true,
+          manageRestaurants: false,
+          manageBranches: false 
+        };
     }
     setFormData(prev => ({ ...prev, role, permissions }));
   };
@@ -514,85 +562,63 @@ const UserList = () => {
   };
 
   // Modified handleSubmit in UserList.js
-// Updated handleSubmit function for UserList.js
-// Replace your handleSubmit in UserList.js with this implementation
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
     
     setIsLoading(true);
     
     try {
-      if (showAddUserModal) {
-        // Create a minimal user object - only include absolutely required fields
-        const userData = {
-          firstName: formData.firstName.trim(),
-          lastName: formData.lastName.trim(),
-          email: formData.email.trim(),
-          password: formData.password,
-          role: formData.role
-        };
-        
-        // Only add permissions with correct boolean values
-        userData.permissions = {
+      // Prepare the user object for API
+      const userData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        role: formData.role,
+        permissions: {
           manageUsers: Boolean(formData.permissions?.manageUsers),
           manageMenu: Boolean(formData.permissions?.manageMenu),
           manageTables: Boolean(formData.permissions?.manageTables),
-          accessPOS: Boolean(formData.permissions?.accessPOS)
-        };
-        
-        // Don't include restaurantId and branchId if they're empty strings
-        if (formData.restaurantId && formData.restaurantId !== '') {
-          userData.restaurantId = formData.restaurantId;
+          accessPOS: Boolean(formData.permissions?.accessPOS),
+          manageRestaurants: Boolean(formData.permissions?.manageRestaurants),
+          manageBranches: Boolean(formData.permissions?.manageBranches)
         }
-        
-        if (formData.branchId && formData.branchId !== '') {
-          userData.branchId = formData.branchId;
-        }
-        
-        console.log('Submitting user data:', userData);
-        
-        // Make API call
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/users', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'x-auth-token': token
-          },
-          body: JSON.stringify(userData)
-        });
-        
-        // Handle response
-        const responseText = await response.text();
-        console.log('API response:', response.status, responseText);
-        
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status} - ${responseText}`);
-        }
-        
-        // Parse response data
-        let responseData;
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (e) {
-          console.warn('Response not valid JSON:', responseText);
-          responseData = { message: 'User created but response was not valid JSON' };
-        }
-        
-        // Update UI
-        setUsers([...users, responseData]);
+      };
+      
+      // Only include password if provided (required for new users, optional for editing)
+      if (formData.password) {
+        userData.password = formData.password;
+      }
+      
+      // Include restaurant and branch if selected
+      if (formData.restaurantId) {
+        userData.restaurantId = formData.restaurantId;
+      }
+      
+      if (formData.branchId) {
+        userData.branchId = formData.branchId;
+      }
+      
+      let result;
+      if (showAddUserModal) {
+        // Create new user
+        result = await userService.createUser(userData);
+        setUsers([...users, result]);
         setShowAddUserModal(false);
       } 
       else if (showEditUserModal && selectedUser) {
-        // Handle edit user similarly
-        // ...
+        // Update existing user
+        result = await userService.updateUser(selectedUser._id, userData);
+        
+        // Update the user in the local state
+        setUsers(users.map(u => u._id === selectedUser._id ? result : u));
+        setShowEditUserModal(false);
       }
+      
     } catch (err) {
-      console.error('Error creating user:', err);
+      console.error('Error saving user:', err);
       setFormErrors({
-        general: err.message || 'Failed to create user. Please try again.'
+        general: err.message || 'Failed to save user. Please try again.'
       });
     } finally {
       setIsLoading(false);
@@ -634,10 +660,25 @@ const handleSubmit = async (e) => {
   
   };
 
-  const getRestaurantName = (id) => restaurants.find(r => r.id === id)?.name || 'Unknown';
-  const getBranchName = (id) => branches.find(b => b.id === id)?.name || 'Unknown';
-  const getFilteredBranches = () =>
-    formData.restaurantId ? branches.filter(b => b.restaurantId === parseInt(formData.restaurantId)) : [];
+  // Fix getRestaurantName and getBranchName functions in UserList.js
+
+const getRestaurantName = (id) => {
+    const restaurant = restaurants.find(r => r._id === id || r.id === id);
+    return restaurant?.name || 'Unknown';
+  };
+  
+  const getBranchName = (id) => {
+    const branch = branches.find(b => b._id === id || b.id === id);
+    return branch?.name || 'Unknown';
+  };
+  const getFilteredBranches = () => {
+    if (!formData.restaurantId) return [];
+    return branches.filter(b => {
+      // Handle both _id and id formats
+      const branchRestaurantId = b.restaurantId?._id || b.restaurantId;
+      return branchRestaurantId === formData.restaurantId;
+    });
+  };
 
   const canManageUser = (user) => {
     if (!currentUser) return false;
@@ -735,27 +776,37 @@ const handleSubmit = async (e) => {
                     )}
                   </Td>
                   <Td>
-                    {user.permissions?.manageUsers && (
-                      <AssignmentBadge>
-                        <FaUserCog /> Users
-                      </AssignmentBadge>
-                    )}
-                    {user.permissions?.manageMenu && (
-                      <AssignmentBadge style={{ marginLeft: '0.25rem' }}>
-                        <FaUtensils /> Menu
-                      </AssignmentBadge>
-                    )}
-                    {user.permissions?.manageTables && (
-                      <AssignmentBadge style={{ marginLeft: '0.25rem' }}>
-                        <FaDesktop /> Tables
-                      </AssignmentBadge>
-                    )}
-                    {user.permissions?.accessPOS && (
-                      <AssignmentBadge style={{ marginLeft: '0.25rem' }}>
-                        <FaDesktop /> POS
-                      </AssignmentBadge>
-                    )}
-                  </Td>
+  {user.permissions?.manageUsers && (
+    <AssignmentBadge>
+      <FaUserCog /> Users
+    </AssignmentBadge>
+  )}
+  {user.permissions?.manageRestaurants && (
+    <AssignmentBadge style={{ marginLeft: '0.25rem' }}>
+      <FaStore /> Restaurants
+    </AssignmentBadge>
+  )}
+  {user.permissions?.manageBranches && (
+    <AssignmentBadge style={{ marginLeft: '0.25rem' }}>
+      <FaStore /> Branches
+    </AssignmentBadge>
+  )}
+  {user.permissions?.manageMenu && (
+    <AssignmentBadge style={{ marginLeft: '0.25rem' }}>
+      <FaUtensils /> Menu
+    </AssignmentBadge>
+  )}
+  {user.permissions?.manageTables && (
+    <AssignmentBadge style={{ marginLeft: '0.25rem' }}>
+      <FaChair /> Tables
+    </AssignmentBadge>
+  )}
+  {user.permissions?.accessPOS && (
+    <AssignmentBadge style={{ marginLeft: '0.25rem' }}>
+      <FaDesktop /> POS
+    </AssignmentBadge>
+  )}
+</Td>
                   <Td>
                     {canManageUser(user) && (
                       <>
@@ -844,37 +895,58 @@ const handleSubmit = async (e) => {
                     )}
                   </FormGroup>
                   <FormGroup>
-                    <FormLabel htmlFor="password">Password</FormLabel>
-                    <FormInput
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      error={formErrors.password}
-                    />
-                    {formErrors.password && (
-                      <ErrorMessage initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                        {formErrors.password}
-                      </ErrorMessage>
-                    )}
-                  </FormGroup>
-                  <FormGroup>
-                    <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
-                    <FormInput
-                      type="password"
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      error={formErrors.confirmPassword}
-                    />
-                    {formErrors.confirmPassword && (
-                      <ErrorMessage initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                        {formErrors.confirmPassword}
-                      </ErrorMessage>
-                    )}
-                  </FormGroup>
+  <FormLabel htmlFor="password">Password</FormLabel>
+  <div style={{ position: 'relative' }}>
+    <FormInput
+      type={showPassword ? "text" : "password"}
+      id="password"
+      name="password"
+      value={formData.password}
+      onChange={handleChange}
+      error={formErrors.password}
+    />
+    <button 
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      style={{
+        position: 'absolute',
+        right: '10px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        color: '#666'
+      }}
+    >
+      {showPassword ? "Hide" : "Show"}
+    </button>
+  </div>
+  {formErrors.password && (
+    <ErrorMessage initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      {formErrors.password}
+    </ErrorMessage>
+  )}
+</FormGroup>
+
+<FormGroup>
+  <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
+  <div style={{ position: 'relative' }}>
+    <FormInput
+      type={showPassword ? "text" : "password"}
+      id="confirmPassword"
+      name="confirmPassword"
+      value={formData.confirmPassword}
+      onChange={handleChange}
+      error={formErrors.confirmPassword}
+    />
+  </div>
+  {formErrors.confirmPassword && (
+    <ErrorMessage initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      {formErrors.confirmPassword}
+    </ErrorMessage>
+  )}
+</FormGroup>
                   <FormGroup>
                     <FormLabel htmlFor="role">Role</FormLabel>
                     <FormSelect
@@ -892,18 +964,23 @@ const handleSubmit = async (e) => {
                     <>
                       <FormGroup>
                         <FormLabel htmlFor="restaurantId">Restaurant</FormLabel>
-                        <FormSelect
-                          id="restaurantId"
-                          name="restaurantId"
-                          value={formData.restaurantId}
-                          onChange={(e) => { handleChange(e); handleRestaurantChange(e); }}
-                          error={formErrors.restaurantId}
-                        >
-                          <option value="">Select Restaurant</option>
-                          {restaurants.map(r => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
-                          ))}
-                        </FormSelect>
+                        {/* Restaurant dropdown */}
+<FormSelect
+  id="restaurantId"
+  name="restaurantId"
+  value={formData.restaurantId}
+  onChange={(e) => { handleChange(e); handleRestaurantChange(e); }}
+  error={formErrors.restaurantId}
+>
+  <option value="">Select Restaurant</option>
+  {restaurants.map(r => (
+    <option key={r._id || r.id} value={r._id || r.id}>
+      {r.name}
+    </option>
+  ))}
+</FormSelect>
+
+
                         {formErrors.restaurantId && (
                           <ErrorMessage initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             {formErrors.restaurantId}
@@ -912,18 +989,21 @@ const handleSubmit = async (e) => {
                       </FormGroup>
                       <FormGroup>
                         <FormLabel htmlFor="branchId">Branch</FormLabel>
-                        <FormSelect
-                          id="branchId"
-                          name="branchId"
-                          value={formData.branchId}
-                          onChange={handleChange}
-                          error={formErrors.branchId}
-                        >
-                          <option value="">Select Branch</option>
-                          {getFilteredBranches().map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                          ))}
-                        </FormSelect>
+                       {/* Branch dropdown */}
+<FormSelect
+  id="branchId"
+  name="branchId"
+  value={formData.branchId}
+  onChange={handleChange}
+  error={formErrors.branchId}
+>
+  <option value="">Select Branch</option>
+  {getFilteredBranches().map(b => (
+    <option key={b._id || b.id} value={b._id || b.id}>
+      {b.name}
+    </option>
+  ))}
+</FormSelect>
                         {formErrors.branchId && (
                           <ErrorMessage initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             {formErrors.branchId}
@@ -932,47 +1012,65 @@ const handleSubmit = async (e) => {
                       </FormGroup>
                     </>
                   )}
-                  <FormGroup className="full-width">
-                    <PermissionSection>
-                      <h3>Permissions</h3>
-                      <Checkbox>
-                        <input
-                          type="checkbox"
-                          name="permissions.manageUsers"
-                          checked={formData.permissions.manageUsers}
-                          onChange={handleChange}
-                        />
-                        <label>Manage Users</label>
-                      </Checkbox>
-                      <Checkbox>
-                        <input
-                          type="checkbox"
-                          name="permissions.manageMenu"
-                          checked={formData.permissions.manageMenu}
-                          onChange={handleChange}
-                        />
-                        <label>Manage Menu</label>
-                      </Checkbox>
-                      <Checkbox>
-                        <input
-                          type="checkbox"
-                          name="permissions.manageTables"
-                          checked={formData.permissions.manageTables}
-                          onChange={handleChange}
-                        />
-                        <label>Manage Tables</label>
-                      </Checkbox>
-                      <Checkbox>
-                        <input
-                          type="checkbox"
-                          name="permissions.accessPOS"
-                          checked={formData.permissions.accessPOS}
-                          onChange={handleChange}
-                        />
-                        <label>Access POS System</label>
-                      </Checkbox>
-                    </PermissionSection>
-                  </FormGroup>
+                 <FormGroup className="full-width">
+  <PermissionSection>
+    <h3>Permissions</h3>
+    <Checkbox>
+      <input
+        type="checkbox"
+        name="permissions.manageUsers"
+        checked={formData.permissions.manageUsers}
+        onChange={handleChange}
+      />
+      <label>Manage Users</label>
+    </Checkbox>
+    <Checkbox>
+      <input
+        type="checkbox"
+        name="permissions.manageRestaurants"
+        checked={formData.permissions.manageRestaurants}
+        onChange={handleChange}
+      />
+      <label>Manage Restaurants</label>
+    </Checkbox>
+    <Checkbox>
+      <input
+        type="checkbox"
+        name="permissions.manageBranches"
+        checked={formData.permissions.manageBranches}
+        onChange={handleChange}
+      />
+      <label>Manage Branches</label>
+    </Checkbox>
+    <Checkbox>
+      <input
+        type="checkbox"
+        name="permissions.manageMenu"
+        checked={formData.permissions.manageMenu}
+        onChange={handleChange}
+      />
+      <label>Manage Menu</label>
+    </Checkbox>
+    <Checkbox>
+      <input
+        type="checkbox"
+        name="permissions.manageTables"
+        checked={formData.permissions.manageTables}
+        onChange={handleChange}
+      />
+      <label>Manage Tables</label>
+    </Checkbox>
+    <Checkbox>
+      <input
+        type="checkbox"
+        name="permissions.accessPOS"
+        checked={formData.permissions.accessPOS}
+        onChange={handleChange}
+      />
+      <label>Access POS System</label>
+    </Checkbox>
+  </PermissionSection>
+</FormGroup>
                   <ModalFooter>
                     <ModalButton type="button" className="secondary" onClick={() => {
                       setShowAddUserModal(false);
