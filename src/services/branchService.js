@@ -1,210 +1,192 @@
 // src/services/branchService.js
 import api from '../utils/api';
 
-/**
- * Service for branch-related API calls
- */
 const branchService = {
-  /**
-   * Get all branches
-   * @param {Object} params Query parameters like restaurantId
-   * @returns {Promise} Promise with branches data
-   */
-  getAllBranches: async (params = {}) => {
+  // Get all branches
+  getAllBranches: async (restaurantId = null) => {
     try {
-      const response = await api.get('/branches', { params });
+      const url = restaurantId ? `/branches?restaurantId=${restaurantId}` : '/branches';
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching branches:', error);
-      
-      // Fallback to localStorage if API fails
-      const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-      if (params.restaurantId) {
-        return storedBranches.filter(b => b.restaurantId === parseInt(params.restaurantId));
-      }
-      return storedBranches;
+      throw error.response?.data || { message: 'Error fetching branches' };
     }
   },
 
-  /**
-   * Get a specific branch by ID
-   * @param {string} id Branch ID
-   * @returns {Promise} Promise with branch data
-   */
+  // Get a branch by ID
   getBranchById: async (id) => {
     try {
+      console.log(`Fetching branch with ID: ${id}`);
       const response = await api.get(`/branches/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching branch with ID ${id}:`, error);
-      
-      // Fallback to localStorage if API fails
-      const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-      const branch = storedBranches.find(b => b.id === parseInt(id));
-      
-      if (!branch) {
-        throw new Error('Branch not found');
-      }
-      
-      return branch;
+      throw error.response?.data || { message: 'Error fetching branch' };
     }
   },
 
-  /**
-   * Create a new branch
-   * @param {Object} branchData Branch data object
-   * @returns {Promise} Promise with created branch data
-   */
+  // Get a restaurant by ID (added this method)
+// In your branchService.js
+getRestaurantById: async (id) => {
+    try {
+      console.log(`Making API call to get restaurant with ID: ${id}`);
+      const response = await api.get(`/restaurants/${id}`);
+      console.log("Restaurant API response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching restaurant with ID ${id}:`, error);
+      console.error("Response status:", error.response?.status);
+      console.error("Response data:", error.response?.data);
+      throw error.response?.data || { message: 'Error fetching restaurant' };
+    }
+  },
+
+  // Get all managers (optional, returns empty array if fails)
+  getManagers: async () => {
+    try {
+      const response = await api.get('/users?role=manager');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching managers:', error);
+      return []; // Return empty array instead of throwing error
+    }
+  },
+
+  // Create a new branch
   createBranch: async (branchData) => {
     try {
-      let response;
+      console.log('Creating branch with data:', branchData);
       
-      // Check if we have an image file
-      if (branchData.image) {
-        // Create a FormData object for file upload
+      // Create a new object to avoid mutating the original
+      const processedData = { ...branchData };
+      
+      // Ensure restaurantId is handled correctly - keeping it as a string for MongoDB ObjectId
+      if (processedData.restaurantId) {
+        processedData.restaurantId = String(processedData.restaurantId);
+        console.log('Using restaurant ID:', processedData.restaurantId);
+      } else {
+        console.error('Missing restaurantId in branch data');
+        throw { message: 'Restaurant ID is required' };
+      }
+      
+      // For all numeric fields, ensure they're properly formatted
+      if (processedData.tableCount) {
+        processedData.tableCount = Number(processedData.tableCount);
+      }
+      
+      if (processedData.managerId) {
+        // Keep managerId as string if it's a MongoDB ObjectId
+        processedData.managerId = String(processedData.managerId);
+      }
+      
+      // Handle image upload if present
+      if (processedData.image) {
         const formData = new FormData();
         
-        // Add all form fields except the image
-        Object.keys(branchData).forEach(key => {
-          if (key !== 'image') {
-            formData.append(key, branchData[key]);
+        // Add all other fields to formData
+        Object.keys(processedData).forEach(key => {
+          if (key === 'image' && processedData[key]) {
+            formData.append('image', processedData[key]);
+          } else {
+            formData.append(key, processedData[key]);
           }
         });
         
-        // Add the image file
-        formData.append('imageUrl', branchData.image);
+        console.log('Sending form data with image, restaurantId:', formData.get('restaurantId'));
         
-        // Send the request with FormData
-        response = await api.post('/branches', formData, {
+        const response = await api.post('/branches', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         });
+        
+        console.log('Branch created successfully:', response.data);
+        return response.data;
       } else {
-        // Regular JSON request without files
-        response = await api.post('/branches', branchData);
+        // Regular JSON request without image
+        console.log('Sending JSON data without image, restaurantId:', processedData.restaurantId);
+        
+        const response = await api.post('/branches', processedData);
+        console.log('Branch created successfully:', response.data);
+        return response.data;
       }
-      
-      // If we have localStorage data, update it for consistency
-      try {
-        const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-        storedBranches.push(response.data);
-        localStorage.setItem('branches', JSON.stringify(storedBranches));
-      } catch (storageError) {
-        console.warn('Could not update localStorage:', storageError);
-      }
-      
-      return response.data;
     } catch (error) {
       console.error('Error creating branch:', error);
-      throw error;
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        
+        // Log any validation errors from the server
+        if (error.response.data && error.response.data.errors) {
+          console.error('Validation errors:', error.response.data.errors);
+        }
+        
+        throw error.response.data || { message: 'Error creating branch' };
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+        throw { message: 'No response received from server' };
+      } else {
+        console.error('Error details:', error.message);
+        throw { message: error.message || 'Error creating branch' };
+      }
     }
   },
 
-  /**
-   * Update an existing branch
-   * @param {string} id Branch ID
-   * @param {Object} branchData Updated branch data
-   * @returns {Promise} Promise with updated branch data
-   */
+  // Update a branch
   updateBranch: async (id, branchData) => {
     try {
-      let response;
+      // Create a new object to avoid mutating the original
+      const processedData = { ...branchData };
       
-      // Check if we have an image file
-      if (branchData.image) {
-        // Create a FormData object for file upload
+      // Handle numeric fields
+      if (processedData.restaurantId) {
+        processedData.restaurantId = Number(processedData.restaurantId);
+      }
+      
+      if (processedData.tableCount) {
+        processedData.tableCount = Number(processedData.tableCount);
+      }
+      
+      // Similar handling for FormData if image exists
+      if (processedData.image) {
         const formData = new FormData();
         
-        // Add all form fields except the image
-        Object.keys(branchData).forEach(key => {
-          if (key !== 'image') {
-            formData.append(key, branchData[key]);
+        Object.keys(processedData).forEach(key => {
+          if (key === 'image' && processedData[key]) {
+            formData.append('image', processedData[key]);
+          } else {
+            formData.append(key, processedData[key]);
           }
         });
         
-        // Add the image file
-        formData.append('imageUrl', branchData.image);
-        
-        // Send the request with FormData
-        response = await api.put(`/branches/${id}`, formData, {
+        const response = await api.put(`/branches/${id}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         });
+        
+        return response.data;
       } else {
-        // Regular JSON request without files
-        response = await api.put(`/branches/${id}`, branchData);
+        const response = await api.put(`/branches/${id}`, processedData);
+        return response.data;
       }
-      
-      // If we have localStorage data, update it for consistency
-      try {
-        const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-        const updatedBranches = storedBranches.map(branch => 
-          branch.id === parseInt(id) ? { ...response.data, id: parseInt(id) } : branch
-        );
-        localStorage.setItem('branches', JSON.stringify(updatedBranches));
-      } catch (storageError) {
-        console.warn('Could not update localStorage:', storageError);
-      }
-      
-      return response.data;
     } catch (error) {
       console.error(`Error updating branch with ID ${id}:`, error);
-      throw error;
+      console.error('Response data:', error.response?.data);
+      throw error.response?.data || { message: 'Error updating branch' };
     }
   },
 
-  /**
-   * Delete a branch
-   * @param {string} id Branch ID
-   * @returns {Promise} Promise with deletion result
-   */
+  // Delete a branch
   deleteBranch: async (id) => {
     try {
       const response = await api.delete(`/branches/${id}`);
-      
-      // If we have localStorage data, update it for consistency
-      try {
-        const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-        const updatedBranches = storedBranches.filter(b => b.id !== parseInt(id));
-        localStorage.setItem('branches', JSON.stringify(updatedBranches));
-        
-        // Also clean up related tables
-        const tables = JSON.parse(localStorage.getItem('tables') || '[]');
-        const updatedTables = tables.filter(t => t.branchId !== parseInt(id));
-        localStorage.setItem('tables', JSON.stringify(updatedTables));
-      } catch (storageError) {
-        console.warn('Could not update localStorage:', storageError);
-      }
-      
       return response.data;
     } catch (error) {
       console.error(`Error deleting branch with ID ${id}:`, error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get branch statistics
-   * @param {string} id Branch ID
-   * @returns {Promise} Promise with branch statistics
-   */
-  getBranchStats: async (id) => {
-    try {
-      const response = await api.get(`/branches/${id}/stats`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching stats for branch with ID ${id}:`, error);
-      
-      // Return basic stats object if API fails
-      return {
-        tableCount: 0,
-        availableTables: 0,
-        occupiedTables: 0,
-        menuItemCount: 0,
-        employeeCount: 0
-      };
+      throw error.response?.data || { message: 'Error deleting branch' };
     }
   }
 };

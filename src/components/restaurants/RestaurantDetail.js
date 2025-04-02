@@ -19,6 +19,9 @@ import {
   FaChair,
   FaPlus
 } from 'react-icons/fa';
+import restaurantService from '../../services/restaurantService';
+
+import branchService from '../../services/branchService';
 
 const DetailContainer = styled(motion.div)`
   padding: 2rem;
@@ -562,33 +565,26 @@ const RestaurantDetail = () => {
   const [error, setError] = useState(null);
   
   useEffect(() => {
-    const fetchData = () => {
-      setIsLoading(true);
-      
-      try {
-        // Get restaurant from localStorage
-        const restaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-        const foundRestaurant = restaurants.find(r => r.id === parseInt(id));
-        
-        if (foundRestaurant) {
-          setRestaurant(foundRestaurant);
-          
-          // Get branches for this restaurant
-          const allBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-          const restaurantBranches = allBranches.filter(
-            branch => branch.restaurantId === parseInt(id)
-          );
-          setBranches(restaurantBranches);
-        } else {
-          setError('Restaurant not found');
-        }
-      } catch (error) {
-        console.error('Error fetching restaurant details:', error);
-        setError('Error loading restaurant details');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+ 
+// Update fetchData function in useEffect
+const fetchData = async () => {
+  setIsLoading(true);
+  
+  try {
+    // Get restaurant from API
+    const fetchedRestaurant = await restaurantService.getRestaurantById(id);
+    setRestaurant(fetchedRestaurant);
+    
+    // Get branches for this restaurant from API
+    const restaurantBranches = await branchService.getAllBranches(id);
+    setBranches(restaurantBranches);
+  } catch (error) {
+    console.error('Error fetching restaurant details:', error);
+    setError(error.message || 'Error loading restaurant details');
+  } finally {
+    setIsLoading(false);
+  }
+};
     
     fetchData();
   }, [id]);

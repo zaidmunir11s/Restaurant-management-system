@@ -18,6 +18,7 @@ import {
   FaDesktop
 } from 'react-icons/fa';
 import { AuthContext } from '../../context/AuthContext';
+import userService from '../../services/userService';
 
 // Helper to darken the primary color on hover
 const darkenColor = (hex) => {
@@ -387,38 +388,28 @@ const UserList = () => {
 
   // Load initial data
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
       setIsLoading(true);
       try {
-        const storedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        // Get users from API
+        const fetchedUsers = await userService.getAllUsers();
+        setUsers(fetchedUsers);
+
+        // For now, still get restaurants and branches from localStorage
+        // This can be updated later to use API calls
         const storedRestaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
         const storedBranches = JSON.parse(localStorage.getItem('branches') || '[]');
-        if (!storedUsers.length) {
-          const demoUsers = [
-            { id: 1, firstName: 'John', lastName: 'Doe', email: 'owner@example.com', role: 'owner',
-              permissions: { manageUsers: true, manageMenu: true, manageTables: true, accessPOS: true } },
-            { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'manager@example.com', role: 'manager',
-              restaurantId: 1, branchId: 101,
-              permissions: { manageUsers: false, manageMenu: true, manageTables: true, accessPOS: true } },
-            { id: 3, firstName: 'Mike', lastName: 'Johnson', email: 'waiter@example.com', role: 'waiter',
-              restaurantId: 1, branchId: 101,
-              permissions: { manageUsers: false, manageMenu: false, manageTables: false, accessPOS: true } }
-          ];
-          localStorage.setItem('users', JSON.stringify(demoUsers));
-          setUsers(demoUsers);
-        } else {
-          setUsers(storedUsers);
-        }
+        
         setRestaurants(storedRestaurants);
         setBranches(storedBranches);
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error("Error loading data:", error);
       } finally {
         setIsLoading(false);
       }
     };
     loadData();
-  }, []);
+  }, [])
 
   const filteredUsers = users.filter(user => {
     const searchLower = searchTerm.toLowerCase();
@@ -522,41 +513,125 @@ const UserList = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  // Modified handleSubmit in UserList.js
+// Updated handleSubmit function for UserList.js
+// Replace your handleSubmit in UserList.js with this implementation
+const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    if (showAddUserModal) {
-      const newUser = {
-        id: Date.now(),
-        ...formData,
-        restaurantId: formData.restaurantId ? parseInt(formData.restaurantId) : null,
-        branchId: formData.branchId ? parseInt(formData.branchId) : null
+    
+    setIsLoading(true);
+    
+    try {
+      if (showAddUserModal) {
+        // Create a minimal user object - only include absolutely required fields
+        const userData = {
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
+          password: formData.password,
+          role: formData.role
+        };
+        
+        // Only add permissions with correct boolean values
+        userData.permissions = {
+          manageUsers: Boolean(formData.permissions?.manageUsers),
+          manageMenu: Boolean(formData.permissions?.manageMenu),
+          manageTables: Boolean(formData.permissions?.manageTables),
+          accessPOS: Boolean(formData.permissions?.accessPOS)
+        };
+        
+        // Don't include restaurantId and branchId if they're empty strings
+        if (formData.restaurantId && formData.restaurantId !== '') {
+          userData.restaurantId = formData.restaurantId;
+        }
+        
+        if (formData.branchId && formData.branchId !== '') {
+          userData.branchId = formData.branchId;
+        }
+        
+        console.log('Submitting user data:', userData);
+        
+        // Make API call
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5000/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'x-auth-token': token
+          },
+          body: JSON.stringify(userData)
+        });
+        
+        // Handle response
+        const responseText = await response.text();
+        console.log('API response:', response.status, responseText);
+        
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status} - ${responseText}`);
+        }
+        
+        // Parse response data
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          console.warn('Response not valid JSON:', responseText);
+          responseData = { message: 'User created but response was not valid JSON' };
+        }
+        
+        // Update UI
+        setUsers([...users, responseData]);
+        setShowAddUserModal(false);
+      } 
+      else if (showEditUserModal && selectedUser) {
+        // Handle edit user similarly
+        // ...
+      }
+    } catch (err) {
+      console.error('Error creating user:', err);
+      setFormErrors({
+        general: err.message || 'Failed to create user. Please try again.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const testUserCreation = async () => {
+    try {
+      // Create a minimal test user
+      const testUser = {
+        firstName: "Test",
+        lastName: "User",
+        email: `test${Date.now()}@example.com`, // Ensure unique email
+        password: "password123",
+        role: "waiter"
       };
-      const updatedUsers = [...users, newUser];
-      setUsers(updatedUsers);
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      setShowAddUserModal(false);
-    } else if (showEditUserModal && selectedUser) {
-      const updatedUser = {
-        ...selectedUser,
-        ...formData,
-        restaurantId: formData.restaurantId ? parseInt(formData.restaurantId) : null,
-        branchId: formData.branchId ? parseInt(formData.branchId) : null
-      };
-      const updatedUsers = users.map(u => u.id === selectedUser.id ? updatedUser : u);
-      setUsers(updatedUsers);
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
-      setShowEditUserModal(false);
+      
+      console.log('Sending test user:', testUser);
+      const response = await userService.createUser(testUser);
+      console.log('Test user created successfully:', response);
+      alert('Test user created successfully');
+    } catch (error) {
+      console.error('Test user creation failed:', error);
+      alert(`Test failed: ${error.message}`);
     }
   };
 
-  const confirmDeleteUser = () => {
+  const confirmDeleteUser = async () => {
     if (!selectedUser) return;
-    const updatedUsers = users.filter(u => u.id !== selectedUser.id);
-    setUsers(updatedUsers);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-    setShowDeleteConfirmation(false);
-    setSelectedUser(null);
+    
+    try {
+      await userService.deleteUser(selectedUser.id);
+      const updatedUsers = users.filter(u => u.id !== selectedUser.id);
+      setUsers(updatedUsers);
+      setShowDeleteConfirmation(false);
+      setSelectedUser(null);
+    } catch (err) {
+      console.error('Error deleting user:', err);
+    }
+  
   };
 
   const getRestaurantName = (id) => restaurants.find(r => r.id === id)?.name || 'Unknown';
@@ -947,6 +1022,9 @@ const UserList = () => {
             </ModalContent>
           </Modal>
         )}
+        <button onClick={testUserCreation} style={{marginBottom: '1rem'}}>
+  Test User Creation
+</button>
       </AnimatePresence>
     </PageContainer>
   );

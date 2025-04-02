@@ -1,207 +1,128 @@
 // src/services/restaurantService.js
 import api from '../utils/api';
 
-/**
- * Service for restaurant-related API calls
- */
 const restaurantService = {
-  /**
-   * Get all restaurants
-   * @returns {Promise} Promise with restaurants data
-   */
+  // Get all restaurants
   getAllRestaurants: async () => {
     try {
       const response = await api.get('/restaurants');
       return response.data;
     } catch (error) {
       console.error('Error fetching restaurants:', error);
+      console.log('Response:', error.response?.data);
+      console.log('Status:', error.response?.status);
       
-      // Fallback to localStorage if API fails
-      const storedRestaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-      return storedRestaurants;
+      throw error.response?.data || { message: 'Error fetching restaurants. Please check the console for details.' };
     }
   },
 
-  /**
-   * Get a specific restaurant by ID
-   * @param {string} id Restaurant ID
-   * @returns {Promise} Promise with restaurant data
-   */
+  // Get a restaurant by ID
   getRestaurantById: async (id) => {
     try {
       const response = await api.get(`/restaurants/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching restaurant with ID ${id}:`, error);
+      console.log('Response:', error.response?.data);
       
-      // Fallback to localStorage if API fails
-      const storedRestaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-      const restaurant = storedRestaurants.find(r => r.id === parseInt(id));
-      
-      if (!restaurant) {
-        throw new Error('Restaurant not found');
-      }
-      
-      return restaurant;
+      throw error.response?.data || { message: 'Error fetching restaurant. Please check the console for details.' };
     }
   },
 
-  /**
-   * Create a new restaurant
-   * @param {Object} restaurantData Restaurant data object
-   * @returns {Promise} Promise with created restaurant data
-   */
+  // Create a new restaurant
   createRestaurant: async (restaurantData) => {
     try {
-      let response;
+      console.log('Creating restaurant with data:', restaurantData);
       
-      // Check if we have an image file
+      // For debugging
+      const token = localStorage.getItem('token');
+      console.log('Auth token available:', !!token);
+      
+      // Method 1: Using FormData for mixed content with files
       if (restaurantData.image) {
-        // Create a FormData object for file upload
         const formData = new FormData();
         
-        // Add all form fields except the image
+        // Add all form fields to formData
         Object.keys(restaurantData).forEach(key => {
-          if (key !== 'image') {
+          if (key === 'image' && restaurantData[key]) {
+            formData.append('image', restaurantData[key]);
+          } else {
             formData.append(key, restaurantData[key]);
           }
         });
         
-        // Add the image file
-        formData.append('imageUrl', restaurantData.image);
-        
-        // Send the request with FormData
-        response = await api.post('/restaurants', formData, {
+        console.log('Sending FormData request');
+        const response = await api.post('/restaurants', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         });
-      } else {
-        // Regular JSON request without files
-        response = await api.post('/restaurants', restaurantData);
+        
+        return response.data;
+      } 
+      // Method 2: Using JSON for data without files
+      else {
+        console.log('Sending JSON request');
+        const response = await api.post('/restaurants', restaurantData);
+        return response.data;
       }
-      
-      // If we have localStorage data, update it for consistency
-      try {
-        const storedRestaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-        storedRestaurants.push(response.data);
-        localStorage.setItem('restaurants', JSON.stringify(storedRestaurants));
-      } catch (storageError) {
-        console.warn('Could not update localStorage:', storageError);
-      }
-      
-      return response.data;
     } catch (error) {
       console.error('Error creating restaurant:', error);
-      throw error;
+      console.log('Response data:', error.response?.data);
+      console.log('Status code:', error.response?.status);
+      console.log('Headers:', error.response?.headers);
+      
+      // Show more detailed error
+      const errorMessage = error.response?.data?.message || 'Server error when creating restaurant';
+      throw { message: errorMessage, details: error.response?.data };
     }
   },
 
-  /**
-   * Update an existing restaurant
-   * @param {string} id Restaurant ID
-   * @param {Object} restaurantData Updated restaurant data
-   * @returns {Promise} Promise with updated restaurant data
-   */
+  // Update a restaurant
   updateRestaurant: async (id, restaurantData) => {
     try {
-      let response;
-      
-      // Check if we have an image file
+      // Create FormData for file upload if there's an image
       if (restaurantData.image) {
-        // Create a FormData object for file upload
         const formData = new FormData();
         
-        // Add all form fields except the image
+        // Add all other form fields to formData
         Object.keys(restaurantData).forEach(key => {
-          if (key !== 'image') {
+          if (key === 'image' && restaurantData[key]) {
+            formData.append('image', restaurantData[key]);
+          } else {
             formData.append(key, restaurantData[key]);
           }
         });
         
-        // Add the image file
-        formData.append('imageUrl', restaurantData.image);
-        
-        // Send the request with FormData
-        response = await api.put(`/restaurants/${id}`, formData, {
+        const response = await api.put(`/restaurants/${id}`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         });
+        
+        return response.data;
       } else {
-        // Regular JSON request without files
-        response = await api.put(`/restaurants/${id}`, restaurantData);
+        const response = await api.put(`/restaurants/${id}`, restaurantData);
+        return response.data;
       }
-      
-      // If we have localStorage data, update it for consistency
-      try {
-        const storedRestaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-        const updatedRestaurants = storedRestaurants.map(restaurant => 
-          restaurant.id === parseInt(id) ? { ...response.data, id: parseInt(id) } : restaurant
-        );
-        localStorage.setItem('restaurants', JSON.stringify(updatedRestaurants));
-      } catch (storageError) {
-        console.warn('Could not update localStorage:', storageError);
-      }
-      
-      return response.data;
     } catch (error) {
       console.error(`Error updating restaurant with ID ${id}:`, error);
-      throw error;
+      console.log('Response:', error.response?.data);
+      
+      throw error.response?.data || { message: 'Error updating restaurant. Please check the console for details.' };
     }
   },
 
-  /**
-   * Delete a restaurant
-   * @param {string} id Restaurant ID
-   * @returns {Promise} Promise with deletion result
-   */
+  // Delete a restaurant
   deleteRestaurant: async (id) => {
     try {
       const response = await api.delete(`/restaurants/${id}`);
-      
-      // If we have localStorage data, update it for consistency
-      try {
-        const storedRestaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-        const updatedRestaurants = storedRestaurants.filter(r => r.id !== parseInt(id));
-        localStorage.setItem('restaurants', JSON.stringify(updatedRestaurants));
-        
-        // Also clean up related branches
-        const branches = JSON.parse(localStorage.getItem('branches') || '[]');
-        const updatedBranches = branches.filter(b => b.restaurantId !== parseInt(id));
-        localStorage.setItem('branches', JSON.stringify(updatedBranches));
-      } catch (storageError) {
-        console.warn('Could not update localStorage:', storageError);
-      }
-      
       return response.data;
     } catch (error) {
       console.error(`Error deleting restaurant with ID ${id}:`, error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get restaurant statistics
-   * @param {string} id Restaurant ID
-   * @returns {Promise} Promise with restaurant statistics
-   */
-  getRestaurantStats: async (id) => {
-    try {
-      const response = await api.get(`/restaurants/${id}/stats`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching stats for restaurant with ID ${id}:`, error);
+      console.log('Response:', error.response?.data);
       
-      // Return basic stats object if API fails
-      return {
-        branchCount: 0,
-        menuItemCount: 0,
-        employeeCount: 0,
-        tableCount: 0,
-        totalOrders: 0,
-        totalRevenue: 0
-      };
+      throw error.response?.data || { message: 'Error deleting restaurant. Please check the console for details.' };
     }
   }
 };

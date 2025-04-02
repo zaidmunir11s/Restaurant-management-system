@@ -34,6 +34,9 @@ import foodAnimation from '../../animations/food-animation.json';
 import tableAnimation from '../../animations/table-animation.json';
 import successAnimation from '../../animations/success-animation.json';
 
+import branchService from '../../services/branchService';
+import tableService from '../../services/tableService';
+
 const DetailContainer = styled(motion.div)`
   padding: 2rem;
   max-width: 1200px;
@@ -818,58 +821,48 @@ const BranchDetail = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   
-  useEffect(() => {
-    const fetchData = () => {
-      setIsLoading(true);
-      
-      try {
-        // Get branch from localStorage
-        const branches = JSON.parse(localStorage.getItem('branches') || '[]');
-        const foundBranch = branches.find(b => b.id === parseInt(id));
-        
-        if (foundBranch) {
-          setBranch(foundBranch);
-          
-          // Get restaurant data
-          const restaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-          const foundRestaurant = restaurants.find(r => r.id === foundBranch.restaurantId);
-          setRestaurant(foundRestaurant);
-          
-          // Get tables for this branch
-          const storedTables = JSON.parse(localStorage.getItem(`branch_tables_${id}`) || '[]');
-          
-          if (storedTables.length === 0) {
-            // Create sample tables
-            const newTables = [];
-            const statuses = ['available', 'occupied', 'reserved'];
-            
-            for (let i = 1; i <= 12; i++) {
-              newTables.push({
-                id: i,
-                number: i,
-                capacity: Math.floor(Math.random() * 4) + 2,
-                status: statuses[Math.floor(Math.random() * statuses.length)]
-              });
-            }
-            
-            localStorage.setItem(`branch_tables_${id}`, JSON.stringify(newTables));
-            setTables(newTables);
-          } else {
-            setTables(storedTables);
-          }
-        } else {
-          setError('Branch not found');
-        }
-      } catch (error) {
-        console.error('Error fetching branch details:', error);
-        setError('Error loading branch details');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+// In BranchDetail.js
+useEffect(() => {
+  const fetchData = async () => {
+    setIsLoading(true);
     
-    fetchData();
-  }, [id]);
+    try {
+      console.log("Fetching branch with ID:", id);
+      // Get branch from API
+      const fetchedBranch = await branchService.getBranchById(id);
+      console.log("Fetched branch data:", fetchedBranch);
+      
+      if (fetchedBranch) {
+        setBranch(fetchedBranch);
+        
+        // Get restaurant data
+        if (fetchedBranch.restaurantId) {
+          const fetchedRestaurant = await branchService.getRestaurantById(fetchedBranch.restaurantId);
+          setRestaurant(fetchedRestaurant);
+        }
+        
+        // Get tables for this branch
+        try {
+          const branchTables = await tableService.getTablesByBranch(id);
+          setTables(branchTables || []);
+        } catch (tableError) {
+          console.error("Error fetching tables:", tableError);
+          // Don't fail the whole page if tables can't be fetched
+          setTables([]);
+        }
+      } else {
+        setError('Branch not found');
+      }
+    } catch (error) {
+      console.error('Error fetching branch details:', error);
+      setError(error.message || 'Error loading branch details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  fetchData();
+}, [id]);
   
   const handleDelete = () => {
     try {

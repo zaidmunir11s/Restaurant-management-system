@@ -26,6 +26,8 @@ import {
 } from 'react-icons/fa';
 import TableSetupConfig from '../tables/TableSetupConfig';
 
+import branchService from '../../services/branchService';
+
 const PageContainer = styled.div`
   padding: 2rem;
   max-width: 1000px;
@@ -686,7 +688,8 @@ const staggerChildren = {
 };
 
 const BranchForm = () => {
-  const { id, restaurantId } = useParams();
+  const { restaurantId } = useParams();
+  const { id } = useParams(); // For editing mode
   const navigate = useNavigate();
   const isEditing = Boolean(id);
   
@@ -725,80 +728,30 @@ const BranchForm = () => {
       setIsFetching(true);
       
       try {
+        console.log("Starting fetchData with restaurantId:", restaurantId);
+        
         // Load restaurant data (if restaurantId is available)
-        if (restaurantId) {
-          const restaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-          const foundRestaurant = restaurants.find(r => r.id === parseInt(restaurantId));
-          
-          if (foundRestaurant) {
-            setRestaurant(foundRestaurant);
-            setFormData(prevState => ({
-              ...prevState,
-              restaurantId: parseInt(restaurantId),
-              city: foundRestaurant.city,
-              state: foundRestaurant.state,
-            }));
-          } else {
-            console.error('Restaurant not found');
-            navigate('/restaurants');
-            return;
-          }
-        } else {
-          // If not editing a specific branch, load all restaurants for dropdown
-          const restaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-          if (restaurants.length > 0 && !restaurantId) {
-            // Set first restaurant as default if none specified
-            setFormData(prevState => ({
-              ...prevState,
-              restaurantId: restaurants[0].id
-            }));
-          }
-        }
+        // In the fetchData function or useEffect
+if (restaurantId) {
+  try {
+    console.log("Fetching restaurant with ID:", restaurantId);
+    const foundRestaurant = await branchService.getRestaurantById(restaurantId);
+    console.log("Found restaurant:", foundRestaurant);
+    
+    setRestaurant(foundRestaurant);
+    setFormData(prevState => ({
+      ...prevState,
+      restaurantId: restaurantId, // Make sure this is the exact ID from the URL
+    }));
+  } catch (error) {
+    // Error handling
+  }
+}
         
-        // Load managers data (in a real app, this would come from your API)
-        // For demo, we'll create mock managers
-        const mockManagers = [
-          { id: 1, name: 'John Smith' },
-          { id: 2, name: 'Sarah Johnson' },
-          { id: 3, name: 'David Chen' }
-        ];
-        setManagers(mockManagers);
-        
-        // If editing, load branch data
-        if (isEditing) {
-          const branches = JSON.parse(localStorage.getItem('branches') || '[]');
-          const branchToEdit = branches.find(branch => branch.id === parseInt(id));
-          
-          if (branchToEdit) {
-            // Load existing restaurant data
-            const restaurants = JSON.parse(localStorage.getItem('restaurants') || '[]');
-            const branchRestaurant = restaurants.find(r => r.id === branchToEdit.restaurantId);
-            if (branchRestaurant) {
-              setRestaurant(branchRestaurant);
-            }
-            
-            // Prepare form data
-            setFormData({
-              ...branchToEdit,
-              // Default values for newly added fields
-              tableCount: branchToEdit.tableCount || 10,
-              includeIndoorTables: true,
-              includeOutdoorTables: true,
-              includeDefaultMenu: true
-            });
-            
-            // Set image preview if exists
-            if (branchToEdit.imageUrl) {
-              setImagePreview(branchToEdit.imageUrl);
-            }
-          } else {
-            console.error('Branch not found');
-            navigate(`/restaurants/${restaurantId}/branches`);
-            return;
-          }
-        }
+        // Rest of your code...
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error("Main fetchData error:", error);
+        setErrors({ general: 'An error occurred while loading data.' });
       } finally {
         setIsFetching(false);
       }
@@ -886,141 +839,98 @@ const BranchForm = () => {
     setImagePreview(null);
   };
   
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    const validationErrors = {};
-    if (!formData.name) validationErrors.name = 'Branch name is required';
-    if (!formData.restaurantId) validationErrors.restaurantId = 'Restaurant is required';
-    if (!formData.address) validationErrors.address = 'Address is required';
-    if (!formData.city) validationErrors.city = 'City is required';
-    if (!formData.state) validationErrors.state = 'State is required';
-    if (!formData.phone) validationErrors.phone = 'Phone number is required';
-    
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
+  // src/components/branches/BranchForm.js
+// Add this import
+
+// In your BranchForm component, update the handleSubmit function:
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Validation
+  const validationErrors = {};
+  if (!formData.name) validationErrors.name = 'Branch name is required';
+  if (!formData.restaurantId) validationErrors.restaurantId = 'Restaurant is required';
+  if (!formData.address) validationErrors.address = 'Address is required';
+  if (!formData.city) validationErrors.city = 'City is required';
+  if (!formData.state) validationErrors.state = 'State is required';
+  if (!formData.phone) validationErrors.phone = 'Phone number is required';
+  
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
+  
+  setIsLoading(true);
+  
+  try {
+    // Prepare branch data for API
+    const branchData = {
+      name: formData.name,
+      restaurantId: formData.restaurantId, // Keep as is for MongoDB ObjectId
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      zipCode: formData.zipCode || '',
+      phone: formData.phone,
+      email: formData.email || '',
+      managerId: formData.managerId || null,
+      openingTime: formData.openingTime,
+      closingTime: formData.closingTime,
+      weekdayHours: formData.weekdayHours || '',
+      weekendHours: formData.weekendHours || '',
+      description: formData.description || '',
+      status: formData.status || 'active',
+      tableCount: parseInt(formData.tableCount || 10)
+    };
+
+    // If we have an image, include it
+    if (formData.image) {
+      branchData.image = formData.image;
     }
     
-    setIsLoading(true);
+    console.log("Submitting branch with restaurantId:", branchData.restaurantId);
     
-    try {
-      // Get current branches from localStorage
-      const branches = JSON.parse(localStorage.getItem('branches') || '[]');
-      
-      // Create new branch data
-      const branchId = isEditing ? parseInt(id) : Date.now();
-      
-      const branchData = {
-        ...formData,
-        restaurantId: parseInt(formData.restaurantId),
-        id: branchId,
-        tableCount: parseInt(formData.tableCount)
-      };
-      
-      if (imagePreview) {
-        // In a real app, you'd upload the image and store the URL
-        // For this demo, we'll just use the image preview as the URL
-        branchData.imageUrl = imagePreview;
-      }
-      
-   // Add manager name for display purposes
-   if (formData.managerId) {
-    const selectedManager = managers.find(m => m.id === parseInt(formData.managerId));
-    if (selectedManager) {
-      branchData.managerName = selectedManager.name;
+    let branch;
+    if (isEditing) {
+      console.log("Updating existing branch with ID:", id);
+      branch = await branchService.updateBranch(id, branchData);
+      console.log("Branch updated successfully:", branch);
+    } else {
+      console.log("Creating new branch");
+      branch = await branchService.createBranch(branchData);
+      console.log("Branch created successfully:", branch);
+    }
+
+    // Show success message
+    setShowSuccess(true);
+    
+    // Navigate back after a delay
+    setTimeout(() => {
+      // Make sure to use the branch's restaurantId from the response if available
+      const targetRestaurantId = branch?.restaurantId || branchData.restaurantId;
+      navigate(`/restaurants/${targetRestaurantId}/branches`);
+    }, 1500);
+  } catch (error) {
+    console.error('Error saving branch:', error);
+    
+    // Clear loading state
+    setIsLoading(false);
+    
+    // Set appropriate error message
+    if (error.message === 'Restaurant not found') {
+      setErrors({
+        general: 'The restaurant was not found. Please check the restaurant ID and try again.'
+      });
+    } else if (typeof error === 'object' && error !== null) {
+      setErrors({
+        general: error.message || 'Error saving branch. Please try again.'
+      });
+    } else {
+      setErrors({
+        general: 'An unknown error occurred. Please try again.'
+      });
     }
   }
-  
-  // Save branch data
-  if (isEditing) {
-    // Update existing branch
-    const updatedBranches = branches.map(branch => 
-      branch.id === parseInt(id) ? branchData : branch
-    );
-    localStorage.setItem('branches', JSON.stringify(updatedBranches));
-  } else {
-    // Create new branch
-    localStorage.setItem('branches', JSON.stringify([...branches, branchData]));
-  }
-  
-  // Create or update tables for this branch
-  const tables = JSON.parse(localStorage.getItem('tables') || '[]');
-  
-  // Remove existing tables for this branch if editing
-  const filteredTables = isEditing 
-    ? tables.filter(table => table.branchId !== branchId)
-    : tables;
-  
-  // Add new tables
-  const newTables = [];
-  for (let i = 1; i <= formData.tableCount; i++) {
-    const isIndoor = i <= Math.ceil(formData.tableCount / 2);
-    // Skip indoor tables if not including them
-    if (isIndoor && !formData.includeIndoorTables) continue;
-    // Skip outdoor tables if not including them
-    if (!isIndoor && !formData.includeOutdoorTables) continue;
-    
-    newTables.push({
-      id: branchId * 100 + i,
-      branchId: branchId,
-      number: i,
-      capacity: i % 3 === 0 ? 6 : (i % 2 === 0 ? 4 : 2),
-      status: 'available',
-      location: isIndoor ? 'Indoor' : 'Outdoor'
-    });
-  }
-  
-  localStorage.setItem('tables', JSON.stringify([...filteredTables, ...newTables]));
-  
-  // Create default menu items if selected
-  if (formData.includeDefaultMenu) {
-    const menuItems = JSON.parse(localStorage.getItem('menuItems') || '[]');
-    
-    // Filter out any existing menu items for this branch if editing
-    const filteredMenuItems = isEditing
-      ? menuItems.filter(item => item.branchId !== branchId)
-      : menuItems;
-    
-    // Create default menu items
-    const defaultMenuItems = [];
-    
-    const categories = ['Appetizers', 'Main Courses', 'Desserts', 'Beverages'];
-    categories.forEach((category, categoryIndex) => {
-      for (let i = 1; i <= 3; i++) {
-        defaultMenuItems.push({
-          id: branchId * 1000 + categoryIndex * 10 + i,
-          branchId: branchId,
-          name: `${category} Item ${i}`,
-          description: `Delicious ${category.toLowerCase()} option ${i}`,
-          price: (categoryIndex * 5 + i * 3) + 0.99,
-          category: category,
-          isVegetarian: i % 2 === 0,
-          isVegan: i % 3 === 0,
-          isGlutenFree: i % 2 === 1,
-          status: 'active'
-        });
-      }
-    });
-    
-    localStorage.setItem('menuItems', JSON.stringify([...filteredMenuItems, ...defaultMenuItems]));
-  }
-  
-  // Show success message
-  setShowSuccess(true);
-  
-  // Navigate back to branch list after a short delay
-  setTimeout(() => {
-    navigate(`/restaurants/${branchData.restaurantId}/branches`);
-  }, 1500);
-} catch (error) {
-  console.error('Error saving branch:', error);
-  setErrors({
-    general: error.message || 'Error saving branch. Please try again.'
-  });
-  setIsLoading(false);
-}
 };
 
 if (isFetching) {

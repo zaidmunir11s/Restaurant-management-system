@@ -46,23 +46,70 @@ const authService = {
       throw error.response ? error.response.data : { message: 'Network error' };
     }
   },
-
+  checkUserDetails: async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log('Current user details:', user);
+      
+      // Check if user has restaurant and branch links
+      if (user.restaurantId) {
+        console.log('User is linked to restaurant ID:', user.restaurantId);
+        
+        // Try to fetch restaurant details
+        const restaurantResponse = await api.get(`/restaurants/${user.restaurantId}`);
+        console.log('Linked restaurant:', restaurantResponse.data);
+      } else {
+        console.log('User is not linked to any restaurant');
+      }
+      
+      if (user.branchId) {
+        console.log('User is linked to branch ID:', user.branchId);
+        
+        // Try to fetch branch details
+        const branchResponse = await api.get(`/branches/${user.branchId}`);
+        console.log('Linked branch:', branchResponse.data);
+      } else {
+        console.log('User is not linked to any branch');
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error checking user details:', error);
+      return null;
+    }
+  },
   /**
    * Login user
    * @param {Object} credentials - User login credentials
    * @returns {Promise} Promise with the login response
    */
-  login: async (credentials) => {
+ // src/services/authService.js - Enhanced login method
+login: async (credentials) => {
     try {
+      console.log('Attempting login with:', credentials.email);
       const response = await api.post('/auth/login', credentials);
+      
       if (response.data.token) {
         // Store token and user data in localStorage
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // Log user info
+        console.log('Login successful. User role:', response.data.user.role);
+        console.log('User permissions:', response.data.user.permissions);
+        if (response.data.user.restaurantId) {
+          console.log('User is linked to restaurant ID:', response.data.user.restaurantId);
+        }
+        if (response.data.user.branchId) {
+          console.log('User is linked to branch ID:', response.data.user.branchId);
+        }
       }
+      
       return response.data;
     } catch (error) {
-      throw error.response ? error.response.data : { message: 'Network error' };
+      console.error('Login failed:', error);
+      console.log('Response data:', error.response?.data);
+      throw error.response?.data || { message: 'Login failed. Please check your credentials.' };
     }
   },
 
