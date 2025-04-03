@@ -47,6 +47,9 @@ import DealForm from '../components/deals/DealForm';
 // POS components
 import POSScreen from '../components/pos/POSScreen';
 
+import AssignedMenus from '../components/branch-specific/AssignedMenus';
+import AssignedTables from '../components/branch-specific/AssignedTables';
+
 // Error pages
 import NotFound from '../common/NotFound';
 
@@ -95,6 +98,8 @@ const AppRoutes = () => {
             <Route path="/restaurants/:restaurantId/branches/new" element={<BranchForm />} />
             <Route path="/branches/:id" element={<BranchDetail />} />
             <Route path="/branches/:id/edit" element={<BranchForm />} />
+            <Route path="/assigned-menus" element={<AssignedMenus />} />
+<Route path="/assigned-tables" element={<AssignedTables />} />
             
             {/* Menu Routes - nested under branches */}
             <Route path="/branches/:branchId/menu" element={<MenuList />} />

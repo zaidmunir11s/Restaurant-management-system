@@ -125,6 +125,7 @@ const authService = {
    */
  // src/services/authService.js - Enhanced login method
  // src/services/authService.js - update the login function
+// src/services/authService.js
 login: async (credentials) => {
     try {
       console.log('Attempting login with:', credentials.email);
@@ -136,6 +137,19 @@ login: async (credentials) => {
           response.data.user.id = response.data.user._id;
         }
         
+        // Ensure branch permissions are properly structured
+        if (!response.data.user.branchPermissions) {
+          response.data.user.branchPermissions = { menu: [], tables: [] };
+        } else {
+          // Make sure we have both arrays
+          if (!response.data.user.branchPermissions.menu) {
+            response.data.user.branchPermissions.menu = [];
+          }
+          if (!response.data.user.branchPermissions.tables) {
+            response.data.user.branchPermissions.tables = [];
+          }
+        }
+        
         // Store token and user data in localStorage
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -143,6 +157,7 @@ login: async (credentials) => {
         // Log user info
         console.log('Login successful. User role:', response.data.user.role);
         console.log('User permissions:', response.data.user.permissions);
+        console.log('Branch permissions:', response.data.user.branchPermissions);
       }
       
       return response.data;

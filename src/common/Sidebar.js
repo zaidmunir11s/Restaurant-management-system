@@ -1,8 +1,9 @@
-import React, { useContext } from 'react';  // Add useContext
+// src/common/Sidebar.js
+import React, { useContext } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { AuthContext } from '../context/AuthContext';  // Add this import
+import { AuthContext } from '../context/AuthContext';
 import { 
   FaHome, 
   FaUtensils, 
@@ -16,9 +17,10 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaCashRegister,
-  FaMoneyBill
+  FaMoneyBill,
+  FaList,
+  FaTh
 } from 'react-icons/fa';
-
 
 const SidebarContainer = styled.div`
   background-color: ${props => props.theme.colors.background.paper};
@@ -140,69 +142,133 @@ const NavItem = styled(NavLink)`
   }
 `;
 
-
 const Sidebar = ({ isExpanded, toggleSidebar }) => {
   const location = useLocation();
   const { currentUser } = useContext(AuthContext);
   
-  // Function to check if user has specific permission
+  // Check if user has general permission
   const hasPermission = (permission) => {
-    return currentUser && currentUser.permissions && currentUser.permissions[permission];
+    if (!currentUser || !currentUser.permissions) return false;
+    return Boolean(currentUser.permissions[permission]);
   };
   
-  // Define navigation items based on user permissions
+  // Check if user has branch-specific permissions
+  const hasBranchSpecificPermissions = () => {
+    if (!currentUser || !currentUser.branchPermissions) return false;
+    
+    const hasMenuPermissions = Array.isArray(currentUser.branchPermissions.menu) && 
+                              currentUser.branchPermissions.menu.length > 0;
+                              
+    const hasTablesPermissions = Array.isArray(currentUser.branchPermissions.tables) && 
+                                currentUser.branchPermissions.tables.length > 0;
+                                
+    return hasMenuPermissions || hasTablesPermissions;
+  };
+  
+  // Build navigation items based on user permissions
   const getNavItems = () => {
     if (!currentUser) return [];
     
     const navItems = [];
     
-    // Always add dashboard
+    // Dashboard - always visible
     navItems.push({ 
-      path: `/${currentUser.role === 'owner' ? 'owner' : 'user'}/dashboard`, 
+      path: `/dashboard`, 
       label: 'Dashboard', 
-      icon: <FaHome /> 
+      icon: <FaHome />,
+      section: 'main'
     });
     
-    // Owner has access to everything
-    if (currentUser.role === 'owner') {
-      navItems.push({ path: '/restaurants', label: 'Restaurants', icon: <FaUtensils /> });
-      navItems.push({ path: '/branches', label: 'Branches', icon: <FaStore /> });
-      navItems.push({ path: '/menu', label: 'Menus', icon: <FaClipboardList /> });
-      navItems.push({ path: '/pos', label: 'POS System', icon: <FaCashRegister /> });
-      navItems.push({ path: '/users', label: 'Staff', icon: <FaUsers /> });
-      navItems.push({ path: '/reports', label: 'Reports', icon: <FaChartBar /> });
-    } else {
-      // Add items based on permissions for non-owners
-      if (hasPermission('editRestaurantDetails')) {
-        navItems.push({ path: '/restaurants', label: 'Restaurants', icon: <FaUtensils /> });
+    // Full restaurant access
+    if (currentUser.role === 'owner' || hasPermission('manageRestaurants')) {
+      navItems.push({ 
+        path: '/restaurants', 
+        label: 'Restaurants', 
+        icon: <FaUtensils />,
+        section: 'main'
+      });
+    }
+    
+    // Full branch access
+    if (currentUser.role === 'owner' || hasPermission('manageBranches')) {
+      navItems.push({ 
+        path: '/branches', 
+        label: 'Branches', 
+        icon: <FaStore />,
+        section: 'main'
+      });
+    }
+    
+    // Full user management
+    if (currentUser.role === 'owner' || hasPermission('manageUsers')) {
+      navItems.push({ 
+        path: '/users', 
+        label: 'Staff', 
+        icon: <FaUsers />,
+        section: 'main'
+      });
+    }
+    
+    // POS access
+    if (currentUser.role === 'owner' || hasPermission('accessPOS')) {
+      navItems.push({ 
+        path: '/pos', 
+        label: 'POS System', 
+        icon: <FaCashRegister />,
+        section: 'main'
+      });
+    }
+    
+    // Branch-specific permissions
+    if (hasBranchSpecificPermissions()) {
+      // Menu permissions for specific branches
+      if (currentUser.branchPermissions?.menu && currentUser.branchPermissions.menu.length > 0) {
+        navItems.push({ 
+          path: '/assigned-menus', 
+          label: 'Branch Menus', 
+          icon: <FaClipboardList />,
+          section: 'branch-specific'
+        });
       }
       
-      if (hasPermission('createBranches') || hasPermission('editBranchInfo')) {
-        navItems.push({ path: '/branches', label: 'Branches', icon: <FaStore /> });
-      }
-      
-      if (hasPermission('editMenu')) {
-        navItems.push({ path: '/menu', label: 'Menus', icon: <FaClipboardList /> });
-      }
-      
-      if (hasPermission('editTables')) {
-        navItems.push({ path: '/tables', label: 'Tables', icon: <FaChair /> });
-      }
-      
-      if (hasPermission('accessPOS')) {
-        navItems.push({ path: '/pos', label: 'POS System', icon: <FaCashRegister /> });
+      // Table permissions for specific branches
+      if (currentUser.branchPermissions?.tables && currentUser.branchPermissions.tables.length > 0) {
+        navItems.push({ 
+          path: '/assigned-tables', 
+          label: 'Branch Tables', 
+          icon: <FaChair />,
+          section: 'branch-specific'
+        });
       }
     }
     
-    // Everyone gets settings
-    navItems.push({ path: '/settings', label: 'Settings', icon: <FaCog /> });
+    // Settings - always visible
+    navItems.push({ 
+      path: '/settings', 
+      label: 'Settings', 
+      icon: <FaCog />,
+      section: 'main'
+    });
     
     return navItems;
   };
   
-  // For debugging
-  console.log("Current user in sidebar:", currentUser);
-  console.log("User permissions:", currentUser?.permissions);
+  // Group nav items by section
+  const groupedNavItems = () => {
+    const items = getNavItems();
+    const grouped = {};
+    
+    items.forEach(item => {
+      if (!grouped[item.section]) {
+        grouped[item.section] = [];
+      }
+      grouped[item.section].push(item);
+    });
+    
+    return grouped;
+  };
+  
+  const navItemGroups = groupedNavItems();
   
   return (
     <SidebarContainer>
@@ -221,10 +287,11 @@ const Sidebar = ({ isExpanded, toggleSidebar }) => {
         </ToggleButton>
       </SidebarHeader>
       
+      {/* Main Navigation */}
       <NavSection isExpanded={isExpanded}>
         <NavSectionTitle isExpanded={isExpanded}>Main</NavSectionTitle>
         
-        {getNavItems().map((item) => (
+        {navItemGroups.main && navItemGroups.main.map((item) => (
           <NavItem 
             key={item.path}
             to={item.path}
@@ -236,6 +303,25 @@ const Sidebar = ({ isExpanded, toggleSidebar }) => {
           </NavItem>
         ))}
       </NavSection>
+      
+      {/* Branch-specific permissions section */}
+      {navItemGroups['branch-specific'] && navItemGroups['branch-specific'].length > 0 && (
+        <NavSection isExpanded={isExpanded}>
+          <NavSectionTitle isExpanded={isExpanded}>Branch Access</NavSectionTitle>
+          
+          {navItemGroups['branch-specific'].map((item) => (
+            <NavItem 
+              key={item.path}
+              to={item.path}
+              isExpanded={isExpanded}
+              className={({ isActive }) => isActive ? 'active' : ''}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </NavItem>
+          ))}
+        </NavSection>
+      )}
     </SidebarContainer>
   );
 };

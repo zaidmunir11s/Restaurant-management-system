@@ -66,32 +66,53 @@ export const AuthProvider = ({ children }) => {
    * Login user
    * @param {Object} credentials - User login credentials
    */
-  const login = async (credentials) => {
-    setIsLoading(true);
-    setError(null);
+// src/context/AuthContext.js
+// In the login function, ensure it properly handles branch-specific permissions
+
+const login = async (credentials) => {
+  setIsLoading(true);
+  setError(null);
+  
+  try {
+    const data = await authService.login(credentials);
     
-    try {
-      const data = await authService.login(credentials);
-      
-      // Ensure user data has permissions
-      if (data.user && !data.user.permissions) {
-        // Set default permissions based on role if none exist
+    // Ensure user data has permissions
+    if (data.user) {
+      // General permissions
+      if (!data.user.permissions) {
         data.user.permissions = getDefaultPermissions(data.user.role);
       }
       
-      // Store the complete user data
-      setCurrentUser(data.user);
-      setIsLoading(false);
-      
-      // Redirect to dashboard or return URL
-      navigate('/dashboard');
-      return data;
-    } catch (err) {
-      setIsLoading(false);
-      setError(err.message || 'Login failed');
-      throw err;
+      // Ensure branch-specific permissions are properly initialized
+      if (!data.user.branchPermissions) {
+        data.user.branchPermissions = {
+          menu: [],
+          tables: []
+        };
+      } else {
+        // Ensure both arrays exist
+        if (!data.user.branchPermissions.menu) {
+          data.user.branchPermissions.menu = [];
+        }
+        if (!data.user.branchPermissions.tables) {
+          data.user.branchPermissions.tables = [];
+        }
+      }
     }
-  };
+    
+    // Store the complete user data
+    setCurrentUser(data.user);
+    setIsLoading(false);
+    
+    // Redirect to dashboard or return URL
+    navigate('/dashboard');
+    return data;
+  } catch (err) {
+    setIsLoading(false);
+    setError(err.message || 'Login failed');
+    throw err;
+  }
+};
   
   // Helper function to get default permissions based on role
   const getDefaultPermissions = (role) => {
