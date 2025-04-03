@@ -1,8 +1,8 @@
-// src/components/common/Sidebar.js
-import React from 'react';
+import React, { useContext } from 'react';  // Add useContext
 import { NavLink, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import { AuthContext } from '../context/AuthContext';  // Add this import
 import { 
   FaHome, 
   FaUtensils, 
@@ -15,9 +15,10 @@ import {
   FaCog,
   FaChevronLeft,
   FaChevronRight,
-  FaCashRegister, // Added for POS
-  FaMoneyBill     // Alternative icon for POS
+  FaCashRegister,
+  FaMoneyBill
 } from 'react-icons/fa';
+
 
 const SidebarContainer = styled.div`
   background-color: ${props => props.theme.colors.background.paper};
@@ -139,41 +140,69 @@ const NavItem = styled(NavLink)`
   }
 `;
 
-const Sidebar = ({ isExpanded, toggleSidebar, userRole }) => {
+
+const Sidebar = ({ isExpanded, toggleSidebar }) => {
   const location = useLocation();
+  const { currentUser } = useContext(AuthContext);
   
-  // Define navigation items based on user role
-  const getNavItems = () => {
-    const navItems = {
-      owner: [
-        { path: '/owner/dashboard', label: 'Dashboard', icon: <FaHome /> },
-        { path: '/restaurants', label: 'Restaurants', icon: <FaUtensils /> },
-        { path: '/branches', label: 'Branches', icon: <FaStore /> },
-        { path: '/menu', label: 'Menus', icon: <FaClipboardList /> },
-        { path: '/pos', label: 'POS System', icon: <FaCashRegister /> }, // Add POS link
-        { path: '/users', label: 'Staff', icon: <FaUsers /> },
-        { path: '/reports', label: 'Reports', icon: <FaChartBar /> },
-        { path: '/settings', label: 'Settings', icon: <FaCog /> }
-      ],
-      manager: [
-        { path: '/manager/dashboard', label: 'Dashboard', icon: <FaHome /> },
-        { path: '/branch/menu', label: 'Menu', icon: <FaClipboardList /> },
-        { path: '/branch/tables', label: 'Tables', icon: <FaChair /> },
-        { path: '/pos', label: 'POS System', icon: <FaCashRegister /> }, // Add POS link
-        { path: '/branch/reports', label: 'Reports', icon: <FaChartBar /> },
-        { path: '/settings', label: 'Settings', icon: <FaCog /> }
-      ],
-      waiter: [
-        { path: '/waiter/dashboard', label: 'Dashboard', icon: <FaHome /> },
-        { path: '/orders', label: 'Orders', icon: <FaClipboardList /> },
-        { path: '/tables', label: 'Tables', icon: <FaChair /> },
-        { path: '/pos', label: 'POS System', icon: <FaCashRegister /> }, // Add POS link
-        { path: '/settings', label: 'Settings', icon: <FaCog /> }
-      ]
-    };
-    
-    return navItems[userRole] || navItems.owner;
+  // Function to check if user has specific permission
+  const hasPermission = (permission) => {
+    return currentUser && currentUser.permissions && currentUser.permissions[permission];
   };
+  
+  // Define navigation items based on user permissions
+  const getNavItems = () => {
+    if (!currentUser) return [];
+    
+    const navItems = [];
+    
+    // Always add dashboard
+    navItems.push({ 
+      path: `/${currentUser.role === 'owner' ? 'owner' : 'user'}/dashboard`, 
+      label: 'Dashboard', 
+      icon: <FaHome /> 
+    });
+    
+    // Owner has access to everything
+    if (currentUser.role === 'owner') {
+      navItems.push({ path: '/restaurants', label: 'Restaurants', icon: <FaUtensils /> });
+      navItems.push({ path: '/branches', label: 'Branches', icon: <FaStore /> });
+      navItems.push({ path: '/menu', label: 'Menus', icon: <FaClipboardList /> });
+      navItems.push({ path: '/pos', label: 'POS System', icon: <FaCashRegister /> });
+      navItems.push({ path: '/users', label: 'Staff', icon: <FaUsers /> });
+      navItems.push({ path: '/reports', label: 'Reports', icon: <FaChartBar /> });
+    } else {
+      // Add items based on permissions for non-owners
+      if (hasPermission('editRestaurantDetails')) {
+        navItems.push({ path: '/restaurants', label: 'Restaurants', icon: <FaUtensils /> });
+      }
+      
+      if (hasPermission('createBranches') || hasPermission('editBranchInfo')) {
+        navItems.push({ path: '/branches', label: 'Branches', icon: <FaStore /> });
+      }
+      
+      if (hasPermission('editMenu')) {
+        navItems.push({ path: '/menu', label: 'Menus', icon: <FaClipboardList /> });
+      }
+      
+      if (hasPermission('editTables')) {
+        navItems.push({ path: '/tables', label: 'Tables', icon: <FaChair /> });
+      }
+      
+      if (hasPermission('accessPOS')) {
+        navItems.push({ path: '/pos', label: 'POS System', icon: <FaCashRegister /> });
+      }
+    }
+    
+    // Everyone gets settings
+    navItems.push({ path: '/settings', label: 'Settings', icon: <FaCog /> });
+    
+    return navItems;
+  };
+  
+  // For debugging
+  console.log("Current user in sidebar:", currentUser);
+  console.log("User permissions:", currentUser?.permissions);
   
   return (
     <SidebarContainer>

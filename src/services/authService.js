@@ -25,7 +25,47 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
+// Add this helper function to your authService.js file
+const getDefaultPermissions = (role) => {
+    switch (role) {
+      case 'owner':
+        return {
+          manageUsers: true,
+          manageMenu: true,
+          manageTables: true,
+          accessPOS: true,
+          manageRestaurants: true,
+          manageBranches: true
+        };
+      case 'manager':
+        return {
+          manageUsers: false,
+          manageMenu: true,
+          manageTables: true,
+          accessPOS: true,
+          manageRestaurants: false,
+          manageBranches: true
+        };
+      case 'waiter':
+        return {
+          manageUsers: false,
+          manageMenu: false,
+          manageTables: false,
+          accessPOS: true,
+          manageRestaurants: false,
+          manageBranches: false
+        };
+      default:
+        return {
+          manageUsers: false,
+          manageMenu: false,
+          manageTables: false,
+          accessPOS: false,
+          manageRestaurants: false,
+          manageBranches: false
+        };
+    }
+  };
 // Auth service methods
 const authService = {
   /**
@@ -84,7 +124,7 @@ const authService = {
    * @returns {Promise} Promise with the login response
    */
  // src/services/authService.js - Enhanced login method
-// In authService.js
+ // src/services/authService.js - update the login function
 login: async (credentials) => {
     try {
       console.log('Attempting login with:', credentials.email);
@@ -103,20 +143,12 @@ login: async (credentials) => {
         // Log user info
         console.log('Login successful. User role:', response.data.user.role);
         console.log('User permissions:', response.data.user.permissions);
-        
-        if (response.data.user.restaurantId) {
-          console.log('User is linked to restaurant ID:', response.data.user.restaurantId);
-        }
-        if (response.data.user.branchId) {
-          console.log('User is linked to branch ID:', response.data.user.branchId);
-        }
       }
       
       return response.data;
     } catch (error) {
       console.error('Login failed:', error);
-      console.log('Response data:', error.response?.data);
-      throw error.response?.data || { message: 'Login failed. Please check your credentials.' };
+      throw error.response?.data || { message: 'Login failed' };
     }
   },
 

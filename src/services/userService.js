@@ -1,4 +1,4 @@
-// src/services/userService.js
+// src/services/userService.js - updated to handle branch permissions
 import api from '../utils/api';
 
 const userService = {
@@ -32,8 +32,7 @@ const userService = {
   },
 
   // Create a new user
- // Updated createUser function in userService
-// In userService.js
+  // In userService.js:
 createUser: async (userData) => {
     try {
       console.log('Creating user with data:', userData);
@@ -47,29 +46,28 @@ createUser: async (userData) => {
         role: userData.role
       };
       
-      // Only add restaurant and branch IDs if applicable and ensure they're strings for MongoDB
-      if (['manager', 'waiter'].includes(userData.role)) {
-        if (userData.restaurantId) {
-          userToCreate.restaurantId = String(userData.restaurantId);
-        }
-        
-        if (userData.branchId) {
-          userToCreate.branchId = String(userData.branchId);
-        }
+      // Only add restaurant and branch IDs if applicable
+      if (userData.restaurantId) {
+        userToCreate.restaurantId = String(userData.restaurantId);
+      }
+      
+      if (userData.branchId) {
+        userToCreate.branchId = String(userData.branchId);
       }
       
       // Always include permissions
-      userToCreate.permissions = userData.permissions || {
-        manageUsers: false,
-        manageMenu: false,
-        manageTables: false,
-        accessPOS: false
+      userToCreate.permissions = {
+        manageUsers: userData.permissions?.manageUsers || false,
+        manageRestaurants: userData.permissions?.manageRestaurants || false,
+        manageBranches: userData.permissions?.manageBranches || false,
+        accessPOS: userData.permissions?.accessPOS || false
       };
       
-      // This ensures default access to POS for waiters if not specified
-      if (userData.role === 'waiter' && !userToCreate.permissions.accessPOS) {
-        userToCreate.permissions.accessPOS = true;
-      }
+      // Include branch-specific permissions
+      userToCreate.branchPermissions = {
+        menu: Array.isArray(userData.branchPermissions?.menu) ? userData.branchPermissions.menu : [],
+        tables: Array.isArray(userData.branchPermissions?.tables) ? userData.branchPermissions.tables : []
+      };
       
       console.log('Sending user data to server:', userToCreate);
       
@@ -80,28 +78,44 @@ createUser: async (userData) => {
         response.data.id = response.data._id;
       }
       
-      console.log('User created successfully:', response.data);
-      
       return response.data;
     } catch (error) {
       console.error('Error creating user:', error);
       throw error.response?.data || { message: 'Failed to create user' };
     }
   },
-
-  // Update a user
+  
+  // Update user
   updateUser: async (id, userData) => {
     try {
       console.log(`Updating user ${id} with data:`, userData);
-      const response = await api.put(`/users/${id}`, userData);
-      console.log('User updated successfully:', response.data);
+      
+      // Make sure to send all permissions
+      const userToUpdate = {
+        ...userData,
+        permissions: {
+          manageUsers: userData.permissions?.manageUsers || false,
+          manageRestaurants: userData.permissions?.manageRestaurants || false,
+          manageBranches: userData.permissions?.manageBranches || false,
+          accessPOS: userData.permissions?.accessPOS || false
+        },
+        branchPermissions: {
+          menu: Array.isArray(userData.branchPermissions?.menu) ? userData.branchPermissions.menu : [],
+          tables: Array.isArray(userData.branchPermissions?.tables) ? userData.branchPermissions.tables : []
+        }
+      };
+      
+      const response = await api.put(`/users/${id}`, userToUpdate);
+      
+      // Ensure consistent id property
+      if (response.data && response.data._id && !response.data.id) {
+        response.data.id = response.data._id;
+      }
+      
       return response.data;
     } catch (error) {
       console.error(`Error updating user with ID ${id}:`, error);
-      console.log('Response data:', error.response?.data);
-      console.log('Status code:', error.response?.status);
-      
-      throw error.response?.data || { message: 'Error updating user. Please check the console for details.' };
+      throw error.response?.data || { message: 'Error updating user' };
     }
   },
 

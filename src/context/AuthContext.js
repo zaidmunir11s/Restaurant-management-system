@@ -72,6 +72,14 @@ export const AuthProvider = ({ children }) => {
     
     try {
       const data = await authService.login(credentials);
+      
+      // Ensure user data has permissions
+      if (data.user && !data.user.permissions) {
+        // Set default permissions based on role if none exist
+        data.user.permissions = getDefaultPermissions(data.user.role);
+      }
+      
+      // Store the complete user data
       setCurrentUser(data.user);
       setIsLoading(false);
       
@@ -82,6 +90,48 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(false);
       setError(err.message || 'Login failed');
       throw err;
+    }
+  };
+  
+  // Helper function to get default permissions based on role
+  const getDefaultPermissions = (role) => {
+    switch (role) {
+      case 'owner':
+        return {
+          manageUsers: true,
+          manageMenu: true,
+          manageTables: true,
+          accessPOS: true,
+          manageRestaurants: true,
+          manageBranches: true
+        };
+      case 'manager':
+        return {
+          manageUsers: false,
+          manageMenu: true,
+          manageTables: true,
+          accessPOS: true,
+          manageRestaurants: false,
+          manageBranches: true
+        };
+      case 'waiter':
+        return {
+          manageUsers: false,
+          manageMenu: false,
+          manageTables: false,
+          accessPOS: true,
+          manageRestaurants: false,
+          manageBranches: false
+        };
+      default:
+        return {
+          manageUsers: false,
+          manageMenu: false,
+          manageTables: false,
+          accessPOS: false,
+          manageRestaurants: false,
+          manageBranches: false
+        };
     }
   };
 
