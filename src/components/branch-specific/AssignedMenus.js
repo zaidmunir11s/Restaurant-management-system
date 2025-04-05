@@ -1,11 +1,9 @@
-// src/components/branch-specific/AssignedMenus.js
 import React, { useState, useEffect, useContext } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { FaClipboardList, FaStore, FaEdit, FaPlus, FaSearch } from 'react-icons/fa';
-import menuService from '../../services/menuService';
+import { FaClipboardList, FaStore } from 'react-icons/fa';
 import branchService from '../../services/branchService';
 
 const PageContainer = styled(motion.div)`
@@ -19,12 +17,6 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
 `;
 
 const Title = styled.h1`
@@ -35,22 +27,6 @@ const Title = styled.h1`
   
   svg {
     color: ${props => props.theme.colors.primary};
-  }
-`;
-
-const ActionButton = styled(Link)`
-  padding: 0.75rem 1.5rem;
-  background-color: ${props => props.theme.colors.primary};
-  color: white;
-  text-decoration: none;
-  border-radius: ${props => props.theme.borderRadius.small};
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  
-  &:hover {
-    opacity: 0.9;
   }
 `;
 
@@ -154,13 +130,11 @@ const AssignedMenus = () => {
         
         const branchIds = currentUser.branchPermissions.menu;
         
-        // Fetch all branches
         const allBranches = await branchService.getAllBranches();
         
-        // Filter to only include branches the user has menu permissions for
         const userBranches = allBranches.filter(branch => {
           const branchId = branch._id || branch.id;
-          return branchIds.includes(branchId);
+          return branchIds.some(id => String(id) === String(branchId));
         });
         
         setAssignedBranches(userBranches);

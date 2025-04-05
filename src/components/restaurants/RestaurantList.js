@@ -192,26 +192,40 @@ const RestaurantList = () => {
     const [error, setError] = useState(null);
     const { currentUser } = useContext(AuthContext);
     
-    useEffect(() => {
-      // Load restaurants from API
-      const loadRestaurants = async () => {
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-          const fetchedRestaurants = await restaurantService.getAllRestaurants();
-          console.log('Fetched restaurants:', fetchedRestaurants);
-          setRestaurants(fetchedRestaurants);
-        } catch (err) {
-          console.error('Error loading restaurants:', err);
-          setError(err.message || 'Failed to load restaurants');
-        } finally {
-          setIsLoading(false);
-        }
-      };
+  // src/components/restaurants/RestaurantList.js - Update to filter restaurants
+
+useEffect(() => {
+    const fetchRestaurants = async () => {
+      setIsLoading(true);
       
-      loadRestaurants();
-    }, []);
+      try {
+        const fetchedRestaurants = await restaurantService.getAllRestaurants();
+        
+        // Filter restaurants based on user permissions
+        let filteredRestaurants = fetchedRestaurants;
+        
+        // If user is not an owner and doesn't have restaurant management permissions
+        if (currentUser && 
+            currentUser.role !== 'owner' && 
+            !currentUser.permissions?.manageRestaurants) {
+          // Only show restaurants the user is assigned to
+          filteredRestaurants = fetchedRestaurants.filter(restaurant => 
+            String(restaurant._id) === String(currentUser.restaurantId) ||
+            String(restaurant.id) === String(currentUser.restaurantId)
+          );
+        }
+        
+        setRestaurants(filteredRestaurants);
+      } catch (error) {
+        console.error("Error fetching restaurants:", error);
+        setError("Failed to load restaurants.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRestaurants();
+  }, [currentUser]);
   
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this restaurant?')) {

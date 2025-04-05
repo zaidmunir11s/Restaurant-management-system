@@ -1,4 +1,3 @@
-// src/routes/AppRoutes.js
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
@@ -47,6 +46,7 @@ import DealForm from '../components/deals/DealForm';
 // POS components
 import POSScreen from '../components/pos/POSScreen';
 
+// Branch-specific components
 import AssignedMenus from '../components/branch-specific/AssignedMenus';
 import AssignedTables from '../components/branch-specific/AssignedTables';
 
@@ -98,8 +98,10 @@ const AppRoutes = () => {
             <Route path="/restaurants/:restaurantId/branches/new" element={<BranchForm />} />
             <Route path="/branches/:id" element={<BranchDetail />} />
             <Route path="/branches/:id/edit" element={<BranchForm />} />
+            
+            {/* Branch-specific routes */}
             <Route path="/assigned-menus" element={<AssignedMenus />} />
-<Route path="/assigned-tables" element={<AssignedTables />} />
+            <Route path="/assigned-tables" element={<AssignedTables />} />
             
             {/* Menu Routes - nested under branches */}
             <Route path="/branches/:branchId/menu" element={<MenuList />} />
@@ -119,6 +121,7 @@ const AppRoutes = () => {
             <Route path="/pos" element={<POSScreen />} />
             <Route path="/pos/:branchId" element={<POSScreen />} />
             
+            {/* Staff/User Routes */}
             {/* Staff/User Routes */}
             <Route path="/users" element={<UserList />} />
             <Route path="/users/new" element={<UserForm />} />

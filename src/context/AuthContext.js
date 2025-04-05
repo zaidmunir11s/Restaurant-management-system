@@ -1,4 +1,3 @@
-// src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
@@ -11,17 +10,14 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Load user from localStorage and validate token on app init
   useEffect(() => {
     const loadUser = async () => {
       setIsLoading(true);
       
       try {
-        // First check if we have a user in localStorage
         const storedUser = authService.getUserFromStorage();
         
         if (storedUser && authService.isAuthenticated()) {
-          // Validate token by fetching current user
           const user = await authService.getCurrentUser();
           setCurrentUser(user);
         } else {
@@ -39,10 +35,6 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  /**
-   * Register a new user
-   * @param {Object} userData - User registration data
-   */
   const register = async (userData) => {
     setIsLoading(true);
     setError(null);
@@ -52,7 +44,6 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(data.user);
       setIsLoading(false);
       
-      // Redirect to dashboard
       navigate('/dashboard');
       return data;
     } catch (err) {
@@ -62,58 +53,65 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  /**
-   * Login user
-   * @param {Object} credentials - User login credentials
-   */
-// src/context/AuthContext.js
-// In the login function, ensure it properly handles branch-specific permissions
-const login = async (credentials) => {
-  setIsLoading(true);
-  setError(null);
-  
-  try {
-    const data = await authService.login(credentials);
+  const login = async (credentials) => {
+    setIsLoading(true);
+    setError(null);
     
-    // Ensure user data has permissions
-    if (data.user) {
-      // General permissions
-      if (!data.user.permissions) {
-        data.user.permissions = getDefaultPermissions(data.user.role);
+    try {
+      const data = await authService.login(credentials);
+      
+      if (data.user) {
+        if (!data.user.permissions) {
+          data.user.permissions = getDefaultPermissions(data.user.role);
+        }
+        
+        if (!data.user.branchPermissions) {
+          data.user.branchPermissions = {
+            menu: [],
+            tables: []
+          };
+        } else {
+          if (!data.user.branchPermissions.menu) {
+            data.user.branchPermissions.menu = [];
+          }
+          if (!data.user.branchPermissions.tables) {
+            data.user.branchPermissions.tables = [];
+          }
+        }
       }
       
-      // Ensure branch-specific permissions are properly initialized
-      if (!data.user.branchPermissions) {
-        data.user.branchPermissions = {
-          menu: [],
-          tables: []
-        };
+      setCurrentUser(data.user);
+      setIsLoading(false);
+      
+      if (data.user.role === 'owner' || data.user.permissions?.manageRestaurants) {
+        navigate('/restaurants');
+      } else if (data.user.permissions?.manageBranches) {
+        navigate('/branches');
+      } else if (data.user.branchPermissions) {
+        const hasBranchMenuAccess = data.user.branchPermissions.menu && 
+                                  data.user.branchPermissions.menu.length > 0;
+        const hasBranchTableAccess = data.user.branchPermissions.tables && 
+                                   data.user.branchPermissions.tables.length > 0;
+        
+        if (hasBranchMenuAccess) {
+          navigate('/assigned-menus');
+        } else if (hasBranchTableAccess) {
+          navigate('/assigned-tables');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        // Ensure both arrays exist
-        if (!data.user.branchPermissions.menu) {
-          data.user.branchPermissions.menu = [];
-        }
-        if (!data.user.branchPermissions.tables) {
-          data.user.branchPermissions.tables = [];
-        }
+        navigate('/dashboard');
       }
+      
+      return data;
+    } catch (err) {
+      setIsLoading(false);
+      setError(err.message || 'Login failed');
+      throw err;
     }
-    
-    // Store the complete user data
-    setCurrentUser(data.user);
-    setIsLoading(false);
-    
-    // Redirect to dashboard or return URL
-    navigate('/dashboard');
-    return data;
-  } catch (err) {
-    setIsLoading(false);
-    setError(err.message || 'Login failed');
-    throw err;
-  }
-};
+  };
   
-  // Helper function to get default permissions based on role
   const getDefaultPermissions = (role) => {
     switch (role) {
       case 'owner':
@@ -155,19 +153,12 @@ const login = async (credentials) => {
     }
   };
 
-  /**
-   * Logout user
-   */
   const logout = () => {
     authService.logout();
     setCurrentUser(null);
     navigate('/signin');
   };
 
-  /**
-   * Request password reset
-   * @param {string} email - User email
-   */
   const forgotPassword = async (email) => {
     setIsLoading(true);
     setError(null);
@@ -183,11 +174,6 @@ const login = async (credentials) => {
     }
   };
 
-  /**
-   * Reset password
-   * @param {string} token - Reset token
-   * @param {string} password - New password
-   */
   const resetPassword = async (token, password) => {
     setIsLoading(true);
     setError(null);
@@ -203,7 +189,6 @@ const login = async (credentials) => {
     }
   };
 
-  // Context value
   const value = {
     currentUser,
     isLoading,

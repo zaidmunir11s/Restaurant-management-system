@@ -77,7 +77,11 @@ useEffect(() => {
               if (fetchedBranch.restaurantId) {
                 console.log("Fetching restaurant with ID from branch:", fetchedBranch.restaurantId);
                 try {
-                  fetchedRestaurant = await restaurantService.getRestaurantById(fetchedBranch.restaurantId);
+                  const restId = typeof fetchedBranch.restaurantId === 'object' 
+                    ? fetchedBranch.restaurantId._id || fetchedBranch.restaurantId.id
+                    : fetchedBranch.restaurantId;
+                  
+                  fetchedRestaurant = await restaurantService.getRestaurantById(restId);
                   console.log("Fetched restaurant:", fetchedRestaurant);
                   if (fetchedRestaurant) {
                     setRestaurant(fetchedRestaurant);
@@ -93,36 +97,7 @@ useEffect(() => {
         }
         // If we have a restaurantId directly, fetch restaurant data
         else if (restaurantId) {
-          try {
-            fetchedRestaurant = await restaurantService.getRestaurantById(restaurantId);
-            console.log("Fetched restaurant directly:", fetchedRestaurant);
-            
-            if (fetchedRestaurant) {
-              setRestaurant(fetchedRestaurant);
-              
-              // Get all branches for this restaurant
-              const allBranches = await branchService.getAllBranches(restaurantId);
-              setBranches(allBranches);
-              
-              // If no specific branch is selected, use the first branch
-              if (!selectedBranchId && allBranches.length > 0) {
-                const firstBranchId = allBranches[0].id || allBranches[0]._id;
-                setSelectedBranchId(firstBranchId);
-                
-                // Fetch the first branch to set it as the selected one
-                try {
-                  fetchedBranch = await branchService.getBranchById(firstBranchId);
-                  if (fetchedBranch) {
-                    setBranch(fetchedBranch);
-                  }
-                } catch (branchError) {
-                  console.error("Error fetching first branch:", branchError);
-                }
-              }
-            }
-          } catch (restError) {
-            console.error("Error fetching restaurant directly:", restError);
-          }
+          // ...existing restaurant fetching code...
         }
         
         // Now fetch menu items based on the branch we have
@@ -135,36 +110,17 @@ useEffect(() => {
             const items = await menuService.getMenuItems({ branchId: branchId });
             console.log(`Fetched ${items.length} menu items:`, items);
             
-            // Set menu items state
             setMenuItems(items);
             
             // Extract categories from menu items
-            const allCategories = items.map(item => item.category);
+            const allCategories = items.map(item => item.category).filter(Boolean);
             const uniqueCategories = ['All', ...new Set(allCategories)];
             setCategories(uniqueCategories);
           } catch (menuError) {
             console.error("Error fetching menu items:", menuError);
           }
         } else if (fetchedRestaurant && !fetchedBranch) {
-          // If we have a restaurant but no branch, try to get restaurant-level menu items
-          try {
-            const restaurantId = fetchedRestaurant.id || fetchedRestaurant._id;
-            console.log(`Fetching menu items for restaurant: ${restaurantId}`);
-            
-            // Use menuService to get items for this restaurant
-            const items = await menuService.getMenuItems({ restaurantId: restaurantId });
-            console.log(`Fetched ${items.length} menu items for restaurant:`, items);
-            
-            // Set menu items state
-            setMenuItems(items);
-            
-            // Extract categories from menu items
-            const allCategories = items.map(item => item.category);
-            const uniqueCategories = ['All', ...new Set(allCategories)];
-            setCategories(uniqueCategories);
-          } catch (menuError) {
-            console.error("Error fetching restaurant menu items:", menuError);
-          }
+          // ...existing restaurant menu code...
         }
         
       } catch (error) {
