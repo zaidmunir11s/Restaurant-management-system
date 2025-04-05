@@ -96,145 +96,144 @@ const BranchIcon = styled.div`
 
 const BranchTitle = styled.h2`
   font-size: 1.25rem;
-  margin-bottom: 0.5rem;
-`;
+  margin-bottom: 0.5rem`;
 
-const BranchAddress = styled.p`
-  font-size: 0.9rem;
-  color: ${props => props.theme.colors.text.secondary};
-  margin-bottom: 1rem;
-`;
-
-const BranchItems = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: auto;
+  const BranchAddress = styled.p`
+   font-size: 0.9rem;
+   color: ${props => props.theme.colors.text.secondary};
+   margin-bottom: 1rem;
+  `;
   
-  span {
-    padding: 0.25rem 0.75rem;
-    background-color: ${props => props.theme.colors.background.main};
-    border-radius: ${props => props.theme.colors.borderRadius.small};
-    font-size: 0.8rem;
-    color: ${props => props.theme.colors.text.secondary};
-  }
-`;
-
-const NoAccessMessage = styled.div`
-  text-align: center;
-  padding: 3rem;
-  background-color: ${props => props.theme.colors.background.paper};
-  border-radius: ${props => props.theme.borderRadius.medium};
-  box-shadow: ${props => props.theme.shadows.small};
+  const BranchItems = styled.div`
+   display: flex;
+   gap: 0.5rem;
+   margin-top: auto;
+   
+   span {
+     padding: 0.25rem 0.75rem;
+     background-color: ${props => props.theme.colors.background.main};
+     border-radius: ${props => props.theme.borderRadius.full};
+     font-size: 0.8rem;
+     color: ${props => props.theme.colors.text.secondary};
+   }
+  `;
   
-  h2 {
-    margin-bottom: 1rem;
-    color: ${props => props.theme.colors.text.primary};
-  }
+  const NoAccessMessage = styled.div`
+   text-align: center;
+   padding: 3rem;
+   background-color: ${props => props.theme.colors.background.paper};
+   border-radius: ${props => props.theme.borderRadius.medium};
+   box-shadow: ${props => props.theme.shadows.small};
+   
+   h2 {
+     margin-bottom: 1rem;
+     color: ${props => props.theme.colors.text.primary};
+   }
+   
+   p {
+     color: ${props => props.theme.colors.text.secondary};
+   }
+  `;
   
-  p {
-    color: ${props => props.theme.colors.text.secondary};
-  }
-`;
-
-const AssignedTables = () => {
-  const { currentUser } = useContext(AuthContext);
-  const [assignedBranches, setAssignedBranches] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const AssignedTables = () => {
+   const { currentUser } = useContext(AuthContext);
+   const [assignedBranches, setAssignedBranches] = useState([]);
+   const [isLoading, setIsLoading] = useState(true);
+   const [error, setError] = useState(null);
+   
+   useEffect(() => {
+     const fetchAssignedBranches = async () => {
+       setIsLoading(true);
+       
+       try {
+         if (!currentUser || !currentUser.branchPermissions || !currentUser.branchPermissions.tables) {
+           setAssignedBranches([]);
+           return;
+         }
+         
+         const branchIds = currentUser.branchPermissions.tables;
+         
+         // Fetch all branches
+         const allBranches = await branchService.getAllBranches();
+         
+         // Filter to only include branches the user has table permissions for
+         const userBranches = allBranches.filter(branch => {
+           const branchId = branch._id || branch.id;
+           return branchIds.includes(branchId);
+         });
+         
+         setAssignedBranches(userBranches);
+       } catch (err) {
+         console.error("Error fetching assigned branches:", err);
+         setError("Failed to load assigned branches.");
+       } finally {
+         setIsLoading(false);
+       }
+     };
+     
+     fetchAssignedBranches();
+   }, [currentUser]);
+   
+   if (isLoading) {
+     return (
+       <PageContainer>
+         <div style={{ textAlign: 'center', padding: '3rem' }}>
+           <p>Loading assigned tables...</p>
+         </div>
+       </PageContainer>
+     );
+   }
+   
+   if (!currentUser || !currentUser.branchPermissions || !currentUser.branchPermissions.tables || currentUser.branchPermissions.tables.length === 0) {
+     return (
+       <PageContainer>
+         <Header>
+           <Title>
+             <FaChair /> Branch Tables
+           </Title>
+         </Header>
+         
+         <NoAccessMessage>
+           <h2>No Tables Access</h2>
+           <p>You don't have permission to manage tables for any branches.</p>
+         </NoAccessMessage>
+       </PageContainer>
+     );
+   }
+   
+   return (
+     <PageContainer
+       initial={{ opacity: 0 }}
+       animate={{ opacity: 1 }}
+       transition={{ duration: 0.3 }}
+     >
+       <Header>
+         <Title>
+           <FaChair /> Branch Tables
+         </Title>
+       </Header>
+       
+       <p>You have access to manage tables for the following branches:</p>
+       
+       <CardGrid>
+         {assignedBranches.map(branch => (
+           <BranchCard 
+             key={branch._id || branch.id} 
+             to={`/branches/${branch._id || branch.id}/tables`}
+           >
+             <BranchIcon>
+               <FaStore />
+             </BranchIcon>
+             <BranchTitle>{branch.name}</BranchTitle>
+             <BranchAddress>{branch.address}, {branch.city}</BranchAddress>
+             <BranchItems>
+               <span>Manage Tables</span>
+             </BranchItems>
+           </BranchCard>
+         ))}
+       </CardGrid>
+     </PageContainer>
+   );
+  };
   
-  useEffect(() => {
-    const fetchAssignedBranches = async () => {
-      setIsLoading(true);
-      
-      try {
-        if (!currentUser || !currentUser.branchPermissions || !currentUser.branchPermissions.tables) {
-          setAssignedBranches([]);
-          return;
-        }
-        
-        const branchIds = currentUser.branchPermissions.tables;
-        
-        // Fetch all branches
-        const allBranches = await branchService.getAllBranches();
-        
-        // Filter to only include branches the user has table permissions for
-        const userBranches = allBranches.filter(branch => {
-          const branchId = branch._id || branch.id;
-          return branchIds.includes(branchId);
-        });
-        
-        setAssignedBranches(userBranches);
-      } catch (err) {
-        console.error("Error fetching assigned branches:", err);
-        setError("Failed to load assigned branches.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchAssignedBranches();
-  }, [currentUser]);
-  
-  if (isLoading) {
-    return (
-      <PageContainer>
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <p>Loading assigned tables...</p>
-        </div>
-      </PageContainer>
-    );
-  }
-  
-  if (!currentUser || !currentUser.branchPermissions || !currentUser.branchPermissions.tables || currentUser.branchPermissions.tables.length === 0) {
-    return (
-      <PageContainer>
-        <Header>
-          <Title>
-            <FaChair /> Branch Tables
-          </Title>
-        </Header>
-        
-        <NoAccessMessage>
-          <h2>No Tables Access</h2>
-          <p>You don't have permission to manage tables for any branches.</p>
-        </NoAccessMessage>
-      </PageContainer>
-    );
-  }
-  
-  return (
-    <PageContainer
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Header>
-        <Title>
-          <FaChair /> Branch Tables
-        </Title>
-      </Header>
-      
-      <p>You have access to manage tables for the following branches:</p>
-      
-      <CardGrid>
-        {assignedBranches.map(branch => (
-          <BranchCard 
-            key={branch._id || branch.id} 
-            to={`/branches/${branch._id || branch.id}/tables`}
-          >
-            <BranchIcon>
-              <FaStore />
-            </BranchIcon>
-            <BranchTitle>{branch.name}</BranchTitle>
-            <BranchAddress>{branch.address}, {branch.city}</BranchAddress>
-            <BranchItems>
-              <span>Manage Tables</span>
-            </BranchItems>
-          </BranchCard>
-        ))}
-      </CardGrid>
-    </PageContainer>
-  );
-};
-
-export default AssignedTables;
+  export default AssignedTables;

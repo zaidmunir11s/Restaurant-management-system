@@ -16,6 +16,7 @@ import CategoryModal from './components/CategoryModal';
 import CategoryManager from './components/CategoryManager';
 import branchService from '../../services/branchService';
 import restaurantService from '../../services/restaurantService';
+import menuService from '../../services/menuService';
 
 // Styled Components
 const MenuViewContainer = styled(motion.div)`
@@ -52,55 +53,122 @@ const MenuList = () => {
   
  // In MenuList.js
 // In the useEffect where you fetch data
+// In src/components/menu/MenuList.js - update the useEffect section
+
 useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         console.log("Fetching data for restaurantId:", restaurantId, "branchId:", branchId);
+        let fetchedBranch = null;
+        let fetchedRestaurant = null;
         
-        // If we have a restaurantId, fetch restaurant data
-        if (restaurantId) {
-          const restaurants = await restaurantService.getAllRestaurants();
-          const foundRestaurant = restaurants.find(r => 
-            r.id === restaurantId || r._id === restaurantId);
-          
-          if (foundRestaurant) {
-            setRestaurant(foundRestaurant);
-            
-            // Get all branches for this restaurant
-            const allBranches = await branchService.getAllBranches(restaurantId);
-            setBranches(allBranches);
-            
-            // If no specific branch is selected, use the first branch
-            if (!selectedBranchId && allBranches.length > 0) {
-              setSelectedBranchId(allBranches[0].id || allBranches[0]._id);
-            }
-          }
-        }
-        
-        // If we have a branchId, fetch branch data
+        // If we have a branchId, fetch branch data first
         if (branchId) {
-          const fetchedBranch = await branchService.getBranchById(branchId);
-          
-          if (fetchedBranch) {
-            setBranch(fetchedBranch);
-            setSelectedBranchId(fetchedBranch.id || fetchedBranch._id);
+          try {
+            fetchedBranch = await branchService.getBranchById(branchId);
+            console.log("Fetched branch:", fetchedBranch);
             
-            // Get restaurant data for this branch
-            if (fetchedBranch.restaurantId) {
-              const fetchedRestaurant = await restaurantService.getRestaurantById(fetchedBranch.restaurantId);
-              if (fetchedRestaurant) {
-                setRestaurant(fetchedRestaurant);
+            if (fetchedBranch) {
+              setBranch(fetchedBranch);
+              setSelectedBranchId(fetchedBranch.id || fetchedBranch._id);
+              
+              // Get restaurant data for this branch
+              if (fetchedBranch.restaurantId) {
+                console.log("Fetching restaurant with ID from branch:", fetchedBranch.restaurantId);
+                try {
+                  fetchedRestaurant = await restaurantService.getRestaurantById(fetchedBranch.restaurantId);
+                  console.log("Fetched restaurant:", fetchedRestaurant);
+                  if (fetchedRestaurant) {
+                    setRestaurant(fetchedRestaurant);
+                  }
+                } catch (restError) {
+                  console.error("Error fetching restaurant from branch:", restError);
+                }
               }
             }
+          } catch (branchError) {
+            console.error("Error fetching branch:", branchError);
+          }
+        }
+        // If we have a restaurantId directly, fetch restaurant data
+        else if (restaurantId) {
+          try {
+            fetchedRestaurant = await restaurantService.getRestaurantById(restaurantId);
+            console.log("Fetched restaurant directly:", fetchedRestaurant);
+            
+            if (fetchedRestaurant) {
+              setRestaurant(fetchedRestaurant);
+              
+              // Get all branches for this restaurant
+              const allBranches = await branchService.getAllBranches(restaurantId);
+              setBranches(allBranches);
+              
+              // If no specific branch is selected, use the first branch
+              if (!selectedBranchId && allBranches.length > 0) {
+                const firstBranchId = allBranches[0].id || allBranches[0]._id;
+                setSelectedBranchId(firstBranchId);
+                
+                // Fetch the first branch to set it as the selected one
+                try {
+                  fetchedBranch = await branchService.getBranchById(firstBranchId);
+                  if (fetchedBranch) {
+                    setBranch(fetchedBranch);
+                  }
+                } catch (branchError) {
+                  console.error("Error fetching first branch:", branchError);
+                }
+              }
+            }
+          } catch (restError) {
+            console.error("Error fetching restaurant directly:", restError);
           }
         }
         
-        // Then fetch menu items...
-        // Rest of the code remains similar but ensure you handle both id and _id properties
+        // Now fetch menu items based on the branch we have
+        if (fetchedBranch) {
+          try {
+            const branchId = fetchedBranch.id || fetchedBranch._id;
+            console.log(`Fetching menu items for branch: ${branchId}`);
+            
+            // Use menuService to get items for this branch
+            const items = await menuService.getMenuItems({ branchId: branchId });
+            console.log(`Fetched ${items.length} menu items:`, items);
+            
+            // Set menu items state
+            setMenuItems(items);
+            
+            // Extract categories from menu items
+            const allCategories = items.map(item => item.category);
+            const uniqueCategories = ['All', ...new Set(allCategories)];
+            setCategories(uniqueCategories);
+          } catch (menuError) {
+            console.error("Error fetching menu items:", menuError);
+          }
+        } else if (fetchedRestaurant && !fetchedBranch) {
+          // If we have a restaurant but no branch, try to get restaurant-level menu items
+          try {
+            const restaurantId = fetchedRestaurant.id || fetchedRestaurant._id;
+            console.log(`Fetching menu items for restaurant: ${restaurantId}`);
+            
+            // Use menuService to get items for this restaurant
+            const items = await menuService.getMenuItems({ restaurantId: restaurantId });
+            console.log(`Fetched ${items.length} menu items for restaurant:`, items);
+            
+            // Set menu items state
+            setMenuItems(items);
+            
+            // Extract categories from menu items
+            const allCategories = items.map(item => item.category);
+            const uniqueCategories = ['All', ...new Set(allCategories)];
+            setCategories(uniqueCategories);
+          } catch (menuError) {
+            console.error("Error fetching restaurant menu items:", menuError);
+          }
+        }
         
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error in fetchData:', error);
       } finally {
         setIsLoading(false);
       }
@@ -136,13 +204,13 @@ useEffect(() => {
   
   // Handle branch selection change
   const handleBranchChange = (e) => {
-    const newBranchId = parseInt(e.target.value);
+    const newBranchId = e.target.value;
     setSelectedBranchId(newBranchId);
     
     // Navigate to the selected branch's menu if we're in restaurant view
     if (isRestaurantView) {
-      navigate(`/branches/${newBranchId}/menu`);
-    }
+        navigate(`/branches/${newBranchId}/menu`);
+      }
   };
   
   // Get current page items

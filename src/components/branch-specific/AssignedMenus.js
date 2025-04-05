@@ -113,7 +113,7 @@ const BranchItems = styled.div`
   span {
     padding: 0.25rem 0.75rem;
     background-color: ${props => props.theme.colors.background.main};
-    border-radius: ${props => props.theme.borderRadius.small}; // Fixed: removed ".colors"
+    border-radius: ${props => props.theme.borderRadius.small};
     font-size: 0.8rem;
     color: ${props => props.theme.colors.text.secondary};
   }

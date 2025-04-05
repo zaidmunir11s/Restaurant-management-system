@@ -68,7 +68,6 @@ export const AuthProvider = ({ children }) => {
    */
 // src/context/AuthContext.js
 // In the login function, ensure it properly handles branch-specific permissions
-
 const login = async (credentials) => {
   setIsLoading(true);
   setError(null);

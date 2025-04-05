@@ -1,20 +1,56 @@
 // src/services/userService.js - updated to handle branch permissions
 import api from '../utils/api';
+import authService from './authService';
 
 const userService = {
   // Get all users
-  getAllUsers: async () => {
+  // In userService.js - modify getAllUsers function
+// In userService.js - modify getAllUsers function further
+getAllUsers: async () => {
     try {
       console.log('Fetching all users...');
-      const response = await api.get('/users');
-      console.log('Users fetched successfully:', response.data);
-      return response.data;
+      
+      // Get current user to filter results
+      const currentUser = authService.getUserFromStorage();
+      
+      // Add query parameters for filtering
+      let params = {};
+      
+      // If current user is an owner, only fetch users created by this owner
+      if (currentUser && currentUser.role === 'owner') {
+        params.createdBy = currentUser._id || currentUser.id;
+      } 
+      // If current user has manageUsers permission, don't filter
+      else if (currentUser && !currentUser.permissions?.manageUsers) {
+        // For managers without manageUsers permission, only show users in their branch
+        if (currentUser.role === 'manager' && currentUser.branchId) {
+          params.branchId = currentUser.branchId;
+        } else {
+          // For all other users without manageUsers permission, only show themselves
+          params.id = currentUser._id || currentUser.id;
+        }
+      }
+      
+      const response = await api.get('/users', { params });
+      
+      // Ensure consistent id format
+      const users = response.data;
+      if (Array.isArray(users)) {
+        users.forEach(user => {
+          if (user._id && !user.id) {
+            user.id = user._id;
+          }
+        });
+      }
+      
+      console.log('Users fetched successfully:', users.length);
+      return users;
     } catch (error) {
       console.error('Error fetching users:', error);
       console.log('Response data:', error.response?.data);
       console.log('Status code:', error.response?.status);
       
-      throw error.response?.data || { message: 'Error fetching users. Please check the console for details.' };
+      throw error;
     }
   },
 
@@ -33,6 +69,7 @@ const userService = {
 
   // Create a new user
   // In userService.js:
+// In userService.js:
 createUser: async (userData) => {
     try {
       console.log('Creating user with data:', userData);
@@ -86,24 +123,38 @@ createUser: async (userData) => {
   },
   
   // Update user
-  updateUser: async (id, userData) => {
+  // In userService.js - update the updateUser function
+updateUser: async (id, userData) => {
     try {
       console.log(`Updating user ${id} with data:`, userData);
       
-      // Make sure to send all permissions
-      const userToUpdate = {
-        ...userData,
-        permissions: {
+      // Create a clean object to send to the backend
+      const userToUpdate = { ...userData };
+      
+      // Make sure to send password only if it's provided
+      if (!userToUpdate.password) {
+        delete userToUpdate.password;
+      }
+      
+      // Make sure permissions are properly formatted
+      if (userToUpdate.permissions) {
+        userToUpdate.permissions = {
           manageUsers: userData.permissions?.manageUsers || false,
           manageRestaurants: userData.permissions?.manageRestaurants || false,
           manageBranches: userData.permissions?.manageBranches || false,
           accessPOS: userData.permissions?.accessPOS || false
-        },
-        branchPermissions: {
+        };
+      }
+      
+      // Make sure branch permissions are properly formatted
+      if (userToUpdate.branchPermissions) {
+        userToUpdate.branchPermissions = {
           menu: Array.isArray(userData.branchPermissions?.menu) ? userData.branchPermissions.menu : [],
           tables: Array.isArray(userData.branchPermissions?.tables) ? userData.branchPermissions.tables : []
-        }
-      };
+        };
+      }
+      
+      console.log('Sending update with data:', userToUpdate);
       
       const response = await api.put(`/users/${id}`, userToUpdate);
       
@@ -115,7 +166,7 @@ createUser: async (userData) => {
       return response.data;
     } catch (error) {
       console.error(`Error updating user with ID ${id}:`, error);
-      throw error.response?.data || { message: 'Error updating user' };
+      throw error;
     }
   },
 

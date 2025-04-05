@@ -1,37 +1,77 @@
 // src/services/restaurantService.js
 import api from '../utils/api';
-
+import authService from './authService';
 const restaurantService = {
   // Get all restaurants
  // In restaurantService.js
 // Get all restaurants
+// Update the getAllRestaurants function in restaurantService.js
+// In restaurantService.js - update getAllRestaurants
+// At the top of getAllRestaurants function in restaurantService.js
 getAllRestaurants: async () => {
     try {
-      const response = await api.get('/restaurants');
+      // Diagnostic logging
+      console.log('---BEGIN RESTAURANT FETCH---');
+      console.log('Auth token in localStorage:', !!localStorage.getItem('token'));
+      console.log('User info in localStorage:', !!localStorage.getItem('user'));
       
-      // Ensure consistent id properties
-      if (Array.isArray(response.data)) {
-        response.data.forEach(restaurant => {
-          if (restaurant._id && !restaurant.id) {
-            restaurant.id = restaurant._id;
-          }
-        });
+      if (localStorage.getItem('user')) {
+        const user = JSON.parse(localStorage.getItem('user'));
+        console.log('User role:', user.role);
       }
       
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching restaurants:', error);
-      console.log('Response:', error.response?.data);
-      console.log('Status:', error.response?.status);
+      // Make the API call
+      console.log('About to call GET /restaurants API...');
+      const response = await api.get('/restaurants');
+      console.log('Raw API response:', response);
       
-      throw error.response?.data || { message: 'Error fetching restaurants. Please check the console for details.' };
+      // Process the data
+      let processedData;
+      if (Array.isArray(response.data)) {
+        console.log('Response data is an array of length:', response.data.length);
+        processedData = response.data.map(restaurant => {
+          // Ensure both id and _id properties exist
+          return {
+            ...restaurant,
+            id: restaurant._id || restaurant.id,
+            _id: restaurant.id || restaurant._id
+          };
+        });
+      } else {
+        console.error('Response data is not an array! Type:', typeof response.data);
+        processedData = [];
+      }
+      
+      console.log('Processed restaurant data to return:', processedData);
+      console.log('---END RESTAURANT FETCH---');
+      
+      return processedData;
+    } catch (error) {
+      console.error('---ERROR FETCHING RESTAURANTS---');
+      console.error('Error type:', error.name);
+      console.error('Error message:', error.message);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Status text:', error.response.statusText);
+        console.error('Response data:', error.response.data);
+      }
+      
+      // Intentionally NOT throwing the error to avoid UI breakage
+      console.log('Returning empty array to avoid UI breakage');
+      return [];
     }
   },
   
   // Get a restaurant by ID
-  getRestaurantById: async (id) => {
+  // src/services/restaurantService.js - update getRestaurantById method
+
+getRestaurantById: async (id) => {
     try {
-      const restaurantId = String(id).trim();
+      // Make sure we have a string ID
+      const restaurantId = typeof id === 'object' ? (id._id || id.toString()) : String(id).trim();
+      console.log(`Fetching restaurant with ID: ${restaurantId}`);
+      
       const response = await api.get(`/restaurants/${restaurantId}`);
       
       // Ensure consistent id property
@@ -39,6 +79,7 @@ getAllRestaurants: async () => {
         response.data.id = response.data._id;
       }
       
+      console.log(`Restaurant data fetched:`, response.data);
       return response.data;
     } catch (error) {
       console.error(`Error fetching restaurant with ID ${id}:`, error);
